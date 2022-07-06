@@ -32,7 +32,7 @@ And, one of the following:
 python3 wais.py --help 
 
 # When you have already assembled the reads (we recommend using SPAdes, it takes longer than SKEASA, but provides higher accuracy for identifying IS insertions).
-python3 wais/wais.py --outputDir SRR9988840 --assembly Example/contigs.fa --ISseqs Example/ISseqs.fasta --reads_1 SRR9988840_1.fastq.gz --reads_2 SRR9988840_2.fastq.gz 
+python3 wais/wais.py --outputDir SRR9988840 --ISseqs Example/IS_seqs_found_in_BP.fasta --reads_1 Example/SRR9988840_1.fastq.gz --reads_2 Example/SRR9988840_2.fastq.gz --assembly Example/contigs.fasta 
 
 # Alternatively, also run spades with WaIS. 
 
