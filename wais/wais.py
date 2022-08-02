@@ -7,11 +7,12 @@ import re
 import subprocess 
 import logging 
 from datetime import datetime
+import glob
 
 logging.basicConfig(filename='wais_' + str(datetime.now()) + '.log', level=logging.DEBUG)
 
 #################################### TOP_LVL 
-def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseReads, fn_ISseqs, fn_reference): 
+def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseReads, fn_ISseqs, fn_reference, isProkka): 
 
 	(dir_out_wais, dir_out_waisTmp, dir_out_waisFinal, dir_out_spades) = createOutputDirStruct(dir_out, isRunSpades)
 
@@ -53,34 +54,59 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	fn_ISinContigs_ignoreOrient = dir_out_waisFinal + 'ISinContigs_ignoreOrient.gff'
 	fn_ISinContigs_ignoreIStype = dir_out_waisFinal + 'ISinContigs_ignoreIStype.gff'
 	
-	fn_contigEstimates_merged = 'estimates_contigs_merged.txt'
-	fn_contigEstimates_ignoreOrient = 'estimates_contigs_ignoreOrient.txt'
-	fn_contigEstimates_ignoreIStype = 'estimates_contigs_ignoreIStype.txt'
+	fn_contigEstimates_merged = dir_out_waisFinal + 'estimates_contigs_merged.txt'
+	fn_contigEstimates_ignoreOrient = dir_out_waisFinal + 'estimates_contigs_ignoreOrient.txt'
+	fn_contigEstimates_ignoreIStype = dir_out_waisFinal + 'estimates_contigs_ignoreIStype.txt'
 
 	fn_out_rmFlanks = dir_out_waisTmp + 'outfile_rmFlanks_whenOneDirFullAlign'
 	fn_out_loadOnlyAndPntFasta = dir_out_waisTmp + 'outfile_loadOnlyAndPntFasta'
 	fn_out_calcInContig_posISOrient = dir_out_waisTmp + 'outfile_calcInContig_posISOrient'
 	fn_out_mergeLocalCounts = dir_out_waisTmp + 'outfile' 
 
+	## Reference files:
+	fn_blastdb_reference = dir_out_waisTmp + 'reference_blastdb'
+	fn_contigsToRef_blastRes = dir_out_waisTmp + 'contigsToRef_blastRes'
+	fn_contigsToRef_gff = dir_out_waisTmp + 'contigsToRef_gff'
+	fn_out_convertBlastToGff = dir_out_waisTmp + 'outfile_convertBlastToGff'
+	fn_IStoRef_blastRes = dir_out_waisTmp + 'IStoRef_blastRes'
+	fn_IStoRef_gff_all = dir_out_waisFinal + 'IStoRef_all.gff'
+	fn_IStoRef_gff_merged = dir_out_waisFinal + 'IStoRef_merged.gff'
+	fn_IStoRef_gff_ignoreOrient = dir_out_waisFinal + 'IStoRef_ignoreOrient.gff'
+	fn_IStoRef_gff_ignoreIStype = dir_out_waisFinal + 'IStoRef_ignoreIStype.gff'
+	fn_out = dir_out_waisTmp + 'outfile'
+	fn_presenceAbsence = dir_out_waisFinal + 'inRef_presenceAbsence'
+	fn_foundNotfound = dir_out_waisFinal + 'inRef_found_notFound'
+	
+	## Prokka 
+	### 1. Contigs: 
+	dir_prokka_assembly = dir_out_wais + 'PROKKA_assembly'
+	fn_prokka_assembly = '' 
+
+	### 2. Reference: 
+	dir_prokka_reference = dir_out_wais + 'PROKKA_reference'
+	fn_prokka_reference = '' 
+	
+	
+
+	
 	# 1. makeblastdb of assembly
 	makeBlastDb(fn_assembly, fn_blastdb_assembly, 'nucl')
-
+	
 	# 2. blast ISseqs to assembly
 	doBlastn_outfmt7(fn_ISseqs, fn_blastdb_assembly, fn_blastRes_IStoContigs)
-
 
 	
 	# 3. Uncompress reads
 	runSeqTk(fn_forwardReads, fn_reads1_fa)
 	runSeqTk(fn_reverseReads, fn_reads2_fa)
-
+	
 	# 4. Makeblastdb of ISseqs
 	makeBlastDb(fn_ISseqs, fn_blastdb_ISseqs, 'nucl')
 	
 	# 5. Blast reads to ISseqs 
 	doBlastn_outfmt7(fn_reads1_fa, fn_blastdb_ISseqs, fn_1_to_IS_blastRes)
 	doBlastn_outfmt7(fn_reads2_fa, fn_blastdb_ISseqs, fn_2_to_IS_blastRes)
-
+	
 	# 6. Get flanking seqs. (i.e. segment of read that does not align to ISseq)
 	getFlankingSeqs(fn_1_to_IS_blastRes, fn_reads1_fa, fn_flanks_1)
 	getFlankingSeqs(fn_2_to_IS_blastRes, fn_reads2_fa, fn_flanks_2)
@@ -88,6 +114,7 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	# 7. Refine flanks - remove pairs with complete alignment
 	rmFlanks_whenOneDirFullAlign_v2(fn_1_to_IS_blastRes, fn_2_to_IS_blastRes, fn_flanks_1, fn_flanks_2, fn_flanks_1_filtered, fn_flanks_2_filtered, fn_out_rmFlanks, dir_out_waisTmp)
 
+	
 	# 8. Blast filtered_flanks to contigs 
 	doBlastn_outfmt7(fn_flanks_1_filtered, fn_blastdb_assembly, fn_flanks1Filtered_to_contigs)
 	doBlastn_outfmt7(fn_flanks_2_filtered, fn_blastdb_assembly, fn_flanks2Filtered_to_contigs)
@@ -99,13 +126,16 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	doBlastn_outfmt7(fn_only1Seqs, fn_blastdb_assembly, fn_only1ToContigs_blastRes)
 	doBlastn_outfmt7(fn_only2Seqs, fn_blastdb_assembly, fn_only2ToContigs_blastRes)
 
+
 	# 11. summarizeOnlyToContig 
 	summarizeOnlyToContig(fn_only1ToContigs_blastRes, fn_flanks2Filtered_to_contigs, str(95), str(40), fn_only1AndFlanks2)
 	summarizeOnlyToContig(fn_only2ToContigs_blastRes, fn_flanks1Filtered_to_contigs, str(95), str(40), fn_only2AndFlanks1)
 
+
 	# 12. rmFlanks_whenPairMismatchContig
 	rmFlanks_whenPairMismatchContig(fn_only1AndFlanks2, fn_only2AndFlanks1, fn_flanks_1_filtered, fn_flanks_2_filtered, fn_flanks_1_filtered_B, fn_flanks_2_filtered_B) 
 
+	
 	# 13. Blast
 	doBlastn_outfmt7(fn_flanks_1_filtered_B, fn_blastdb_assembly, fn_flanks1FilteredB_to_contigs)
 	doBlastn_outfmt7(fn_flanks_2_filtered_B, fn_blastdb_assembly, fn_flanks2FilteredB_to_contigs)
@@ -113,68 +143,152 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	# 14. calcInContig_posISOrient
 	calcInContig_posISOrient(fn_blastRes_IStoContigs, fn_flanks1Filtered_to_contigs, fn_flanks2Filtered_to_contigs, str(85), str(90), str(18), fn_ISinContigs_all, fn_out_calcInContig_posISOrient) 
 
-
+	
 	# 15a. In Contigs: mergeLocalCounts (merge-overlaps)
-	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_merged, fn_ISinContigs_merged, str(20), fn_out_mergeLocalCounts, '')
+	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_merged, fn_ISinContigs_merged, str(20), fn_out_mergeLocalCounts, [])
 
 	# 15b. In Contigs: mergeLocalCounts (merge, ignoreOrient,)
-	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_merged, fn_ISinContigs_merged, str(20), fn_out_mergeLocalCounts, ' --ignoreOrient True ')
+	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreOrient, fn_ISinContigs_merged, str(20), fn_out_mergeLocalCounts, ['--ignoreOrient', 'True'])
 
 	# 15c. In Contigs: mergeLocalCounts (merge, ignoreOrient, ignoreIStype)
-	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreOrient, fn_ISinContigs_ignoreOrient, str(20), fn_out_mergeLocalCounts, ' --ignoreOrient True --ignoreIStype True ')
+	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreIStype, fn_ISinContigs_ignoreIStype, str(20), fn_out_mergeLocalCounts, ['--ignoreOrient', 'True', '--ignoreIStype', 'True'])
 
+	
 	## If reference 
-	# 16. calcInRef_posISorient_v2
+	if fn_reference != None:
+		makeBlastDb(fn_reference, fn_blastdb_reference, 'nucl')
+		
+		doBlastn_outfmt7(fn_ISseqs, fn_blastdb_reference, fn_IStoRef_blastRes) # blast IS to refs 
+		doBlastn_outfmt7(fn_assembly, fn_blastdb_reference, fn_contigsToRef_blastRes) # blast contigs to refs
 
+		convertBlastToGff(fn_contigsToRef_blastRes, fn_contigsToRef_gff, fn_out_convertBlastToGff) 
+	
+		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_all, fn_out, []) 
+		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_merged, fn_out, ['--isMerged', 'True']) 
+		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_ignoreOrient, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True']) 
+		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_ignoreIStype, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True', '--ignoreIStype', 'True']) 
+	
+		genPresAbsTblWrtRef(fn_IStoRef_blastRes, fn_IStoRef_gff_all, fn_presenceAbsence)
+	
+		ISinRefGenome_conglomerate(fn_IStoRef_blastRes, fn_IStoRef_gff_all, str(20), str(0), fn_foundNotfound)
+
+	
 	## If prokka 
-	# 17. prokka 
+	if isProkka: 
+		# For contigs 
+		runProkka(fn_assembly, dir_prokka_assembly, 'assembly')
+		# getInterruptedAnnotationIds()
+		# bedtoolsIntersect()
 
+	
+		if fn_reference != None: 
+			runProkka(fn_reference, dir_prokka_reference, 'reference') 
+			# bedtoolsIntersect()
 	# ... 
+	
+#################################### AUX - Prokka 
+def bedtoolsIntersect():
+	pass 
 
+def runProkka(fn_input, dir_output, str_runningOn):
+	command = ["prokka", fn_input, "--outdir", dir_output]
+
+	# subprocess.run(command, shell=True) 
+
+	runTheCommand(command, 'Running PROKKA on ' +  str_runningOn + '.')
+
+	fn_prokka_out = glob.glob(dir_output + '/*.gff') 
+	
+	# print ("The output prokka filename is " + str(fn_prokka_out))
+	return fn_prokka_out[0]
 
 #################################### AUX - Calling WaIS scripts
-def mergeLocalCounts(fn_ISinContig_all, fn_contigEstimates, fn_ISinContigs_merged, th_forMergingOverlaps, fn_out, additionalParams): 
-	command = 'python3 wais/scripts/mergeLocalCounts.py  --fn_ISinGff ' + fn_ISinContig_all + ' --fnOut_estimates ' + fn_contigEstimates + ' --th_forMergingOverlaps  ' + th_forMergingOverlaps + ' --fnOut_gff3_merged ' + fn_ISinContigs_merged + ' ' + additionalParams + ' > ' + fn_out 
+def ISinRefGenome_conglomerate(fn_IStoRef_blastRes, fn_IStoRef_gff, th_toMergePosFound, th_finalAlignOverlap, fn_res):
+	command = ["python3", "wais/scripts/ISinRefGenome_conglomerate.py", "--IStoRef_blastRes", fn_IStoRef_blastRes, "--IStoRef_gff", fn_IStoRef_gff, "--th_toMergePosFound", th_toMergePosFound, "--th_finalAlignOverlap", th_finalAlignOverlap] # + " > " + fn_res] 
 
-	subprocess.run(command, shell=True)
+	runTheCommand_redirectOutputToFile(command, 'Getting IS in reference, conglomerated.', fn_res)
+
+	# subprocess.run(command, shell=True)
+
+
+def genPresAbsTblWrtRef(fn_IStoRef_blastRes, fn_IStoRef_gff, fn_presenceAbsence):
+	command = ["python3", "wais/scripts/genPresAbsTblWrtRef.py", "--IStoRef_blast", fn_IStoRef_blastRes, "--IStoRef_illuminaCalc", fn_IStoRef_gff] #  + " > " + fn_presenceAbsence]
+
+	runTheCommand_redirectOutputToFile(command, 'Generating IS site presence, or absence, for an isolate w.r.t. reference.', fn_presenceAbsence)
+
+	# subprocess.run(command, shell=True) 
+
+def calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_all_gff, fn_out, params): 
+	command = ['python3', 'wais/scripts/calcInRef_posISorient_v2.py', '--IStoContig', fn_blastRes_IStoContigs, '--directIStoRef', fn_IStoRef_blastRes, '--contigToRef', fn_contigToRef_blastRes, '--IS_annotation', fn_ISinContigs_all, '--fn_out', fn_IStoRef_all_gff] # ' ' + params + ' > ' + fn_out]
+
+	command = command + params
+
+	runTheCommand(command, 'Mapping identified IS positions to reference genome.') 
+	# subprocess.run(command, shell=True)
+	
+
+def convertBlastToGff(fn_contigsToRef_blastRes, fn_contigsToRef_gff, fn_out_convertBlastToGff):
+	command = ['python3', 'wais/scripts/convertBlastToGff.py', '--blastRes', fn_contigsToRef_blastRes, '--out', fn_contigsToRef_gff] # , ' > ' + fn_out_convertBlastToGff]
+
+	runTheCommand_redirectOutputToFile(command, 'Converting contigs-to-ref BLAST results to gff3.', fn_out_convertBlastToGff)
+
+	# subprocess.run(command, shell=True)
+
+def mergeLocalCounts(fn_ISinContig_all, fn_contigEstimates, fn_ISinContigs_merged, th_forMergingOverlaps, fn_out, additionalParams): 
+	command = ['python3', 'wais/scripts/mergeLocalCounts.py', '--fn_ISinGff', fn_ISinContig_all, '--fnOut_estimates', fn_contigEstimates, '--th_forMergingOverlaps', th_forMergingOverlaps, '--fnOut_gff3_merged', fn_ISinContigs_merged] #  ' ' + additionalParams + ' > ' + fn_out] 
+
+	command = command + additionalParams
+
+	runTheCommand(command, 'Merging local counts - to get estimates of IS insertions.')
+
+	# subprocess.run(command, shell=True)
 
 def calcInContig_posISOrient(fn_blastRes_IStoContigs, fn_flanks1FilteredB, fn_flanks2FilteredB, th_minPident, th_minPalignLen, th_minAlignLen, fn_ISinContig_gff, fn_out): 
-	command = 'python3 wais/scripts/calcInContig_posISOrient.py --direct ' + fn_blastRes_IStoContigs + ' --flanks1ToContigs ' + fn_flanks1FilteredB + ' --flanks2ToContigs ' + fn_flanks2FilteredB + ' --th_minPident ' + th_minPident + ' --th_minPalignLen ' + th_minPalignLen + ' --th_minAlignLen ' + th_minAlignLen + ' --output_gff ' + fn_ISinContig_gff + ' > ' + fn_out
+	command = ['python3', 'wais/scripts/calcInContig_posISOrient.py', '--direct', fn_blastRes_IStoContigs, '--flanks1ToContigs', fn_flanks1FilteredB, '--flanks2ToContigs', fn_flanks2FilteredB, '--th_minPident', th_minPident, '--th_minPalignLen', th_minPalignLen, '--th_minAlignLen', th_minAlignLen, '--output_gff', fn_ISinContig_gff] #, ' > ' + fn_out]
 
-	subprocess.run(command, shell=True) 
-
+	# subprocess.run(command, shell=True) 
+	runTheCommand(command, 'Calculating IS insertions in contigs.')
 
 def rmFlanks_whenPairMismatchContig(fn_only1AndFlanks2, fn_only2AndFlanks1, fn_flanks1Filtered, fn_flanks2Filtered, fn_flanks1FilteredB, fn_flanks2FilteredB):
-	command = 'python3 wais/scripts/rmFlanks_whenPairMismatchContig.py --only2AndFlanks1 ' + fn_only2AndFlanks1 + ' --only1AndFlanks2 ' + fn_only1AndFlanks2 + ' --flanks1 ' + fn_flanks1Filtered + ' --flanks2 ' + fn_flanks2Filtered + ' --out_flanks1 ' + fn_flanks1FilteredB + ' --out_flanks2 ' + fn_flanks2FilteredB
 
-	subprocess.run(command, shell=True)
+	command = ['python3', 'wais/scripts/rmFlanks_whenPairMismatchContig.py', '--only2AndFlanks1', fn_only2AndFlanks1, '--only1AndFlanks2', fn_only1AndFlanks2, '--flanks1', fn_flanks1Filtered, '--flanks2', fn_flanks2Filtered, '--out_flanks1', fn_flanks1FilteredB, '--out_flanks2', fn_flanks2FilteredB]
+
+	runTheCommand(command, 'Removing pairs when mismatched IS reads.')
 
 
 def summarizeOnlyToContig(fn_only1ToContigs_blastRes, fn_flanks2Filtered_to_contigs, th_minPident, th_alignAndLenDiff, fn_only1AndFlanks2):
-	command = "python3 /srv/scratch/lanlab/Sandeep/Wiis/Scripts/summarizeOnlyToContig.py --only " + fn_only1ToContigs_blastRes + " --flanks " + fn_flanks2Filtered_to_contigs + " --th_minPident " + th_minPident + " --th_alignAndLenDiff " + th_alignAndLenDiff + " > " + fn_only1AndFlanks2
+	command = ["python3", "wais/scripts/summarizeOnlyToContig.py", "--only", fn_only1ToContigs_blastRes, "--flanks", fn_flanks2Filtered_to_contigs, "--th_minPident", th_minPident, "--th_alignAndLenDiff", th_alignAndLenDiff] #, " > " + fn_only1AndFlanks2]
 	
-	subprocess.run(command, shell=True) 
+	runTheCommand_redirectOutputToFile(command, 'Summarising "only" blastRes to contigs.',fn_only1AndFlanks2)
+
+	# subprocess.run(command, shell=True) 
 
 
 def loadOnlyAndPntFasta(fn_only1, fn_only2, fn_reads1, fn_reads2, fn_out_reads1, fn_out_reads2, fn_out):
 
-	command = 'python3 wais/scripts/loadOnlyAndPntFasta.py --only1 ' + fn_only1 + ' --only2 ' + fn_only2 + ' --reads1 ' + fn_reads1 + ' --reads2 ' + fn_reads2 + ' --outfile_reads1 ' + fn_out_reads1 + ' --outfile_reads2 ' + fn_out_reads2 + ' > ' + fn_out
+	command = ['python3', 'wais/scripts/loadOnlyAndPntFasta.py', '--only1', fn_only1, '--only2', fn_only2, '--reads1', fn_reads1, '--reads2', fn_reads2, '--outfile_reads1', fn_out_reads1, '--outfile_reads2', fn_out_reads2] # , ' > ' + fn_out]
 
-	subprocess.run(command, shell=True) 
+	runTheCommand(command, 'Getting the fasta sequences of the filtered (1) flanks.')
+	# subprocess.run(command, shell=True) 
 
 
 def rmFlanks_whenOneDirFullAlign_v2(blastRes_1, blastRes_2, flanks_1, flanks_2, fn_out_flanks1Filtered, fn_out_flanks2Filtered, fn_out, dir_out_waisTmp):
-	command1 = "python3 wais/scripts/rmFlanks_whenOneDirFullAlign_v2.py --blastRes_1 " + blastRes_1 + " --blastRes_2 " + blastRes_2 + " --flanks_1 " + flanks_1 + " --flanks_2 " + flanks_2 + " --out_flanks_1 " + fn_out_flanks1Filtered + " --out_flanks_2 " + fn_out_flanks2Filtered + " > " + fn_out
-	command2 = "mv only1.txt only2.txt both.txt " + dir_out_waisTmp
+	command1 = ["python3", "wais/scripts/rmFlanks_whenOneDirFullAlign_v2.py", "--blastRes_1", blastRes_1, "--blastRes_2", blastRes_2, "--flanks_1", flanks_1, "--flanks_2", flanks_2, "--out_flanks_1", fn_out_flanks1Filtered, "--out_flanks_2", fn_out_flanks2Filtered] #, " > " + fn_out]
 
-	subprocess.run(command1, shell=True)
-	subprocess.run(command2, shell=True)
+	command2 = ["mv", "only1.txt", "only2.txt", "both.txt", dir_out_waisTmp]
+
+	runTheCommand(command1, 'Filtering flanks part 1 (removing flanks, when pair is complete IS')
+	runTheCommand(command2, 'Moving extracted flanks to tmp dir')
+
+	# subprocess.run(command1, shell=True)
+	# subprocess.run(command2, shell=True)
 
 
 def getFlankingSeqs(reads_to_IS_blastRes, reads, fn_out):
-	command = 'python3 wais/scripts/getFlankingSeqs.py --reads_to_IS ' + reads_to_IS_blastRes + ' --reads ' + reads + ' > ' + fn_out
+	command = ['python3', 'wais/scripts/getFlankingSeqs.py', '--reads_to_IS', reads_to_IS_blastRes, '--reads', reads] #  + ' > ' + fn_out]
 	
-	subprocess.run(command, shell=True)
+	runTheCommand_redirectOutputToFile(command, 'WaIS - extracting flanking sequences.', fn_out)
+	# subprocess.run(command, shell=True)
 #################################### AUX 
 def extractReadName(fn_read): 
 
@@ -186,24 +300,61 @@ def extractReadName(fn_read):
 
 #################################### AUX - SEQtk
 def runSeqTk(fn_reads, fn_out): 
-	
-	logging.info('Decompressing ' + fn_reads + ' to fasta using seqtk ' + fn_out)
 
-	subprocess.run('seqtk seq -A -N ' + fn_reads + ' > ' + fn_out, shell=True)
+	command = ['seqtk', 'seq', '-A', '-N', fn_reads, '>', fn_out]
+
+	# subprocess.run(, shell=True)
+	runTheCommand_redirectOutputToFile(command, 'Decompressing ' + fn_reads + ' to fasta using seqtk ' + fn_out, fn_out)
 
 #################################### AUX - BLAST
 def makeBlastDb(input, output, dbtype): 
 	
-	logging.info('Creating blastdb ' + output)
+	
+	command = ["makeblastdb",  "-in", input, "-out", output, "-dbtype", dbtype]
+	# subprocess.run("makeblastdb -in " + input + " -out " + output + " -dbtype " + dbtype, shell=True)
+	runTheCommand(command, 'Making BLAST database ' + str(output))
 
-	subprocess.run("makeblastdb -in " + input + " -out " + output + " -dbtype " + dbtype, shell=True)
-		
+
+def runTheCommand(command, printStr):
+	logging.info('START: ' + printStr)
+	logging.info('Command: ' + ' '.join(command))
+	cmd = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	cmdOut, cmdErr = cmd.communicate()
+
+	cmdOut = cmdOut.decode("utf-8").replace('\\n', '\n')
+	logging.info(cmdOut) 
+
+	if cmdErr: 
+		logging.info('ERROR: ' + printStr)
+		logging.error(cmdErr)
+
+
+	logging.info('COMPLETE: ' + printStr)
+	
+def runTheCommand_redirectOutputToFile(command, printStr, fn_out):
+
+	fh_out = open(fn_out, 'w+')
+
+	logging.info('START: ' + printStr)
+	logging.info('Command: ' + ' '.join(command))
+	cmd = subprocess.Popen(command, stdout=fh_out, stderr=subprocess.STDOUT)
+	cmdOut, cmdErr = cmd.communicate()
+
+	# cmdOut = cmdOut.decode("utf-8").replace('\\n', '\n')
+	# logging.info(cmdOut) 
+
+	if cmdErr: 
+		logging.info('ERROR: ' + printStr)
+		logging.error(cmdErr)
+
+
+	logging.info('COMPLETE: ' + printStr)
+
 def doBlastn_outfmt7(query, db, output):
 
-	logging.info('Blasting query ' + query + ' against db ' + db)
+	command = ['blastn', '-task', 'megablast', '-query', query, '-db', db, '-outfmt', "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen", '-out', output]
 
-	subprocess.run('blastn -task megablast -query ' + query + ' -db ' + db + ' -outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen" -out ' + output, shell=True) 
- 
+	runTheCommand(command, 'BLASTing query ' + query + ' against db ' + db)
 
 #################################### AUX - SPADES
 def handleSpades(isRunSpades, fn_assembly, dir_out_spades, fn_reads1, fn_reads2): 
@@ -250,19 +401,43 @@ def createOutputDirStruct(dir_out, isRunSpades):
 	return (dir_out_wais, dir_out_waisTmp, dir_out_waisFinal, dir_out_spades)
 
 #################################### MAIN 
+
+def checkSpades(runSpades, assembly): 
+
+	if ((runSpades == False) and assembly == None) or (runSpades == True and assembly): 
+		sys.exit("\nError: exactly one of the following options is required:\n --runSpades\n --assembly <contigs.fasta>\n\n")
+
+
+def checkIfFileExists(filename): 		
+	if not os.path.exists(filename): 
+		sys.exit('\nError: the specified assembly file does not exist ' + filename + '\n')
+
+def returnSlashIfMissing(dirName): 
+
+	if not re.match('/$', dirName): 
+		return '/'
+	
+	return ''
+
+
 def main(): 
 	parser = argparse.ArgumentParser(description='Determine where the insertion sequences (IS) are in a reference genome, or an assembly (generated using short-reads) - using short-read sequences.')
 
 	parser.add_argument('--outputDir', required=True, nargs=1)
 	parser.add_argument('--runSpades', action='store_true', help='')
+	parser.add_argument('--spadesOptions', nargs=1, default=[''], help="Options to send to spades.")
 	parser.add_argument('--assembly', nargs=1, help='')
 	parser.add_argument('--ISseqs', required=True, nargs=1, help='Fasta file containing the IS sequences to find.') 
 	parser.add_argument('--reads_1', required=True, nargs=1, help="Illumina reads forward file.")
 	parser.add_argument('--reads_2', required=True, nargs=1, help="Illumina reads reverse file.")
-	parser.add_argument('--reference', nargs=1, help='A reference genome to map the insertion sequences identified in the assembly.', default=[None])
+	
 	# '--keepTmp'
+	
 	## Reference 
+	parser.add_argument('--reference', nargs=1, help='A reference genome to map the insertion sequences identified in the assembly.', default=[None])
 
+	## Prokka 
+	parser.add_argument('--prokka', action='store_true', help='Run PROKKA to annotate genome and identify those distrupted by IS.')
 
 	## Spades options
 	# --path_to_spades 
@@ -272,6 +447,7 @@ def main():
 
 	args = parser.parse_args()
 	
+
 	checkSpades(args.runSpades, args.assembly)
 	
 	## Checking if input/output files exist
@@ -290,27 +466,9 @@ def main():
 
 	## Checking input thresholds
 
-	runWaIS(args.outputDir[0], args.runSpades, args.assembly, args.reads_1[0], args.reads_2[0], args.ISseqs[0], args.reference[0])
+	runWaIS(args.outputDir[0], args.runSpades, args.assembly, args.reads_1[0], args.reads_2[0], args.ISseqs[0], args.reference[0], args.prokka)
 
 
-
-
-def checkSpades(runSpades, assembly): 
-
-	if ((runSpades == False) and assembly == None) or (runSpades == True and assembly): 
-		sys.exit("\nError: exactly one of the following options is required:\n --runSpades\n --assembly <contigs.fasta>\n\n")
-
-
-def checkIfFileExists(filename): 		
-	if not os.path.exists(filename): 
-		sys.exit('\nError: the specified assembly file does not exist ' + filename + '\n')
-
-def returnSlashIfMissing(dirName): 
-
-	if not re.match('/$', dirName): 
-		return '/'
-	
-	return ''
 
 if __name__=='__main__':
 	main() 
