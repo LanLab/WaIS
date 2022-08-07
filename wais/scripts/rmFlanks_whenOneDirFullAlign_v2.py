@@ -293,8 +293,8 @@ def main():
     parser.add_argument('--blastRes_1', nargs=1, required=True, help="Blast results of reads to IS.")
     parser.add_argument('--blastRes_2', nargs=1, required=True, help="Blast results of reads to IS.")
 
-    parser.add_argument('--minChoppedLen', nargs=1, default=[18], type=int, help="Minimun chopped sequence length (excluding overlapping sequence) to keep that sequence for further analysis.")
-    parser.add_argument("--buffer", nargs=1, default=[0], type=int, help="Buffer sequence length of the alignment of SKESA to complete genome to include, to see if the IS lies nearby.")
+    parser.add_argument('--minChoppedLen', nargs=1, default=[18], type=int, help="Minimun chopped sequence length (excluding overlapping sequence) to keep that sequence for further analysis. Default=18.")
+    parser.add_argument("--buffer", nargs=1, default=[0], type=int, help="Buffer sequence length of the alignment of SKESA to complete genome to include, to see if the IS lies nearby. Default=0.")
 
     parser.add_argument('--flanks_1', nargs=1, required=True, help="Flanks_1 file.")
     parser.add_argument('--flanks_2', nargs=1, required=True, help="Flanks_2 file.")

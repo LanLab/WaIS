@@ -11,8 +11,69 @@ import glob
 
 logging.basicConfig(filename='wais_' + str(datetime.now()) + '.log', level=logging.DEBUG)
 
+class Thresholds:
+
+	dict_th = {
+		'getFlankingSeqs': {'--overlap': None, '--minChoppedLen': None},
+		'rmFlanks_whenOneDirFullAlign_v2': {'--minChoppedLen': None, '--buffer': None}, 
+		'summarizeOnlyToContig': {'--th_minPident': None, '--th_alignAndLenDiff': None},
+		'calcInContig_posISOrient': {'--th_minPident': None, '--th_minPalignLen': None, '--th_minAlignLen': None, '--th_minPident_direct': None, '--th_minAlignLen_direct': None, '--kmeans_clus_start': None, '--kmeans_clus_end': None, '--th_minFlankDepth': None},
+		'mergeLocalCounts': {'--th_forMergingOverlaps': None, '--th_toCountAsEdge': None}, 
+		'calcInRef_posISorient_v2': {'--th_alignDiff_IStoContig': None, '--merge_th': None}, 
+		'ISinRefGenome_conglomerate': {'--th_toMergePosFound': None, '--th_finalAlignOverlap': None}
+	}
+
+	def __init__(self, args): 
+		self.dict_th['getFlankingSeqs']['--overlap'] = args.th_getFlankingSeqs_overlap[0]
+		self.dict_th['getFlankingSeqs']['--minChoppedLen'] = args.th_getFlankingSeqs_minChoppedLen[0]
+		
+		self.dict_th['rmFlanks_whenOneDirFullAlign_v2']['--minChoppedLen'] = args.th__rmFlanks_whenOneDirFullAlign_v2__minChoppedLen[0]
+		self.dict_th['rmFlanks_whenOneDirFullAlign_v2']['--buffer'] = args.th__rmFlanks_whenOneDirFullAlign_v2__buffer[0]
+		
+		self.dict_th['summarizeOnlyToContig']['--th_minPident'] = args.th_summarizeOnlyToContig_minPident[0]
+		self.dict_th['summarizeOnlyToContig']['--th_alignAndLenDiff'] = args.th_summarizeOnlyToContig_alignAndLenDiff[0]
+
+		self.dict_th['calcInContig_posISOrient']['--th_minPident'] = args.th__calcInContig_posISOrient__minPident[0]
+		self.dict_th['calcInContig_posISOrient']['--th_minPalignLen'] = args.th__calcInContig_posISOrient__minPalignLen[0]
+		self.dict_th['calcInContig_posISOrient']['--th_minAlignLen'] = args.th__calcInContig_posISOrient__minAlignLen[0]
+		self.dict_th['calcInContig_posISOrient']['--th_minPident_direct'] = args.th__calcInContig_posISOrient__minPident_direct[0]
+		self.dict_th['calcInContig_posISOrient']['--th_minAlignLen_direct'] = args.th__calcInContig_posISOrient__minAlignLen_direct[0]
+		self.dict_th['calcInContig_posISOrient']['--kmeans_clus_start'] = args.th__calcInContig_posISOrient__clus_start[0]
+		self.dict_th['calcInContig_posISOrient']['--kmeans_clus_end'] = args.th__calcInContig_posISOrient__clus_end[0]
+		self.dict_th['calcInContig_posISOrient']['--th_minFlankDepth'] = args.th__calcInContig_posISOrient__minFlankDepth[0]
+		
+		self.dict_th['mergeLocalCounts']['--th_forMergingOverlaps'] = args.th_mergeLocalCounts_forMergingOverlaps[0]
+		self.dict_th['mergeLocalCounts']['--th_toCountAsEdge'] = args.th_mergeLocalCounts_toCountAsEdge[0]
+		self.dict_th['mergeLocalCounts']['--separator'] = args.th_mergeLocalCounts_separator[0]
+		
+		self.dict_th['calcInRef_posISorient_v2']['--th_alignDiff_IStoContig'] = args.th__calcInRef_posISorient_v2__alignDiff_IStoContig[0]
+		self.dict_th['calcInRef_posISorient_v2']['--merge_th'] = args.th__calcInRef_posISorient_v2__merge[0]
+		self.dict_th['calcInRef_posISorient_v2']['--separator'] = args.th__calcInRef_posISorient_v2__separator[0]
+
+		self.dict_th['ISinRefGenome_conglomerate']['--th_toMergePosFound'] = args.th__ISinRefGenome_conglomerate__toMergePosFound[0]
+		self.dict_th['ISinRefGenome_conglomerate']['--th_finalAlignOverlap'] = args.th__ISinRefGenome_conglomerate__finalAlignOverlap[0]
+
+		if self.dict_th['mergeLocalCounts']['--separator'] != self.dict_th['calcInRef_posISorient_v2']['--separator']: 
+			sys.exit('Error: mergeLocalCounts.separator and calcInRef_posISorient_v2.separator should be the same.' )
+
+
+	def getThresholds_asList(self, scriptName):
+		asList = [] 
+		for key in self.dict_th[scriptName]: 
+			asList.append(key) 
+			asList.append(str(self.dict_th[scriptName][key]))
+
+		# print (asList)
+		# return self.dict_th[scriptName]
+		return asList
+		 
+
+	def printThresholds(self): 
+		print (self.dict_th)
+
+
 #################################### TOP_LVL 
-def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseReads, fn_ISseqs, fn_reference, isProkka): 
+def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseReads, fn_ISseqs, fn_reference, isProkka, thresholds): 
 
 	(dir_out_wais, dir_out_waisTmp, dir_out_waisFinal, dir_out_spades) = createOutputDirStruct(dir_out, isRunSpades)
 
@@ -108,11 +169,11 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	doBlastn_outfmt7(fn_reads2_fa, fn_blastdb_ISseqs, fn_2_to_IS_blastRes)
 	
 	# 6. Get flanking seqs. (i.e. segment of read that does not align to ISseq)
-	getFlankingSeqs(fn_1_to_IS_blastRes, fn_reads1_fa, fn_flanks_1)
-	getFlankingSeqs(fn_2_to_IS_blastRes, fn_reads2_fa, fn_flanks_2)
+	getFlankingSeqs(fn_1_to_IS_blastRes, fn_reads1_fa, fn_flanks_1, thresholds)
+	getFlankingSeqs(fn_2_to_IS_blastRes, fn_reads2_fa, fn_flanks_2, thresholds)
 	
 	# 7. Refine flanks - remove pairs with complete alignment
-	rmFlanks_whenOneDirFullAlign_v2(fn_1_to_IS_blastRes, fn_2_to_IS_blastRes, fn_flanks_1, fn_flanks_2, fn_flanks_1_filtered, fn_flanks_2_filtered, fn_out_rmFlanks, dir_out_waisTmp)
+	rmFlanks_whenOneDirFullAlign_v2(fn_1_to_IS_blastRes, fn_2_to_IS_blastRes, fn_flanks_1, fn_flanks_2, fn_flanks_1_filtered, fn_flanks_2_filtered, fn_out_rmFlanks, dir_out_waisTmp, thresholds)
 
 	
 	# 8. Blast filtered_flanks to contigs 
@@ -128,8 +189,8 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 
 
 	# 11. summarizeOnlyToContig 
-	summarizeOnlyToContig(fn_only1ToContigs_blastRes, fn_flanks2Filtered_to_contigs, str(95), str(40), fn_only1AndFlanks2)
-	summarizeOnlyToContig(fn_only2ToContigs_blastRes, fn_flanks1Filtered_to_contigs, str(95), str(40), fn_only2AndFlanks1)
+	summarizeOnlyToContig(fn_only1ToContigs_blastRes, fn_flanks2Filtered_to_contigs, fn_only1AndFlanks2, thresholds)
+	summarizeOnlyToContig(fn_only2ToContigs_blastRes, fn_flanks1Filtered_to_contigs, fn_only2AndFlanks1, thresholds)
 
 
 	# 12. rmFlanks_whenPairMismatchContig
@@ -141,17 +202,17 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	doBlastn_outfmt7(fn_flanks_2_filtered_B, fn_blastdb_assembly, fn_flanks2FilteredB_to_contigs)
 
 	# 14. calcInContig_posISOrient
-	calcInContig_posISOrient(fn_blastRes_IStoContigs, fn_flanks1Filtered_to_contigs, fn_flanks2Filtered_to_contigs, str(85), str(90), str(18), fn_ISinContigs_all, fn_out_calcInContig_posISOrient) 
+	calcInContig_posISOrient(fn_blastRes_IStoContigs, fn_flanks1FilteredB_to_contigs, fn_flanks2FilteredB_to_contigs,  fn_ISinContigs_all, fn_out_calcInContig_posISOrient, thresholds) 
 
 	
 	# 15a. In Contigs: mergeLocalCounts (merge-overlaps)
-	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_merged, fn_ISinContigs_merged, str(20), fn_out_mergeLocalCounts, [])
+	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_merged, fn_ISinContigs_merged, fn_out_mergeLocalCounts, [], thresholds)
 
 	# 15b. In Contigs: mergeLocalCounts (merge, ignoreOrient,)
-	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreOrient, fn_ISinContigs_merged, str(20), fn_out_mergeLocalCounts, ['--ignoreOrient', 'True'])
+	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreOrient, fn_ISinContigs_ignoreOrient, fn_out_mergeLocalCounts, ['--ignoreOrient', 'True'], thresholds)
 
 	# 15c. In Contigs: mergeLocalCounts (merge, ignoreOrient, ignoreIStype)
-	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreIStype, fn_ISinContigs_ignoreIStype, str(20), fn_out_mergeLocalCounts, ['--ignoreOrient', 'True', '--ignoreIStype', 'True'])
+	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreIStype, fn_ISinContigs_ignoreIStype, fn_out_mergeLocalCounts, ['--ignoreOrient', 'True', '--ignoreIStype', 'True'], thresholds)
 
 	
 	## If reference 
@@ -163,14 +224,14 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 
 		convertBlastToGff(fn_contigsToRef_blastRes, fn_contigsToRef_gff, fn_out_convertBlastToGff) 
 	
-		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_all, fn_out, []) 
-		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_merged, fn_out, ['--isMerged', 'True']) 
-		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_ignoreOrient, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True']) 
-		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_ignoreIStype, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True', '--ignoreIStype', 'True']) 
+		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_all, fn_out, [], thresholds) 
+		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_merged, fn_out, ['--isMerged', 'True'], thresholds) 
+		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_ignoreOrient, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True'], thresholds) 
+		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_ignoreIStype, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True', '--ignoreIStype', 'True'], thresholds) 
 	
 		genPresAbsTblWrtRef(fn_IStoRef_blastRes, fn_IStoRef_gff_all, fn_presenceAbsence)
 	
-		ISinRefGenome_conglomerate(fn_IStoRef_blastRes, fn_IStoRef_gff_all, str(20), str(0), fn_foundNotfound)
+		ISinRefGenome_conglomerate(fn_IStoRef_blastRes, fn_IStoRef_gff_all, fn_foundNotfound, thresholds)
 
 	
 	## If prokka 
@@ -203,8 +264,10 @@ def runProkka(fn_input, dir_output, str_runningOn):
 	return fn_prokka_out[0]
 
 #################################### AUX - Calling WaIS scripts
-def ISinRefGenome_conglomerate(fn_IStoRef_blastRes, fn_IStoRef_gff, th_toMergePosFound, th_finalAlignOverlap, fn_res):
-	command = ["python3", "wais/scripts/ISinRefGenome_conglomerate.py", "--IStoRef_blastRes", fn_IStoRef_blastRes, "--IStoRef_gff", fn_IStoRef_gff, "--th_toMergePosFound", th_toMergePosFound, "--th_finalAlignOverlap", th_finalAlignOverlap] # + " > " + fn_res] 
+def ISinRefGenome_conglomerate(fn_IStoRef_blastRes, fn_IStoRef_gff, fn_res, thresholds):
+	command = ["python3", "wais/scripts/ISinRefGenome_conglomerate.py", "--IStoRef_blastRes", fn_IStoRef_blastRes, "--IStoRef_gff", fn_IStoRef_gff] # + " > " + fn_res] 
+
+	command = command + thresholds.getThresholds_asList('ISinRefGenome_conglomerate')
 
 	runTheCommand_redirectOutputToFile(command, 'Getting IS in reference, conglomerated.', fn_res)
 
@@ -218,9 +281,10 @@ def genPresAbsTblWrtRef(fn_IStoRef_blastRes, fn_IStoRef_gff, fn_presenceAbsence)
 
 	# subprocess.run(command, shell=True) 
 
-def calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_all_gff, fn_out, params): 
+def calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_all_gff, fn_out, params, thresholds): 
 	command = ['python3', 'wais/scripts/calcInRef_posISorient_v2.py', '--IStoContig', fn_blastRes_IStoContigs, '--directIStoRef', fn_IStoRef_blastRes, '--contigToRef', fn_contigToRef_blastRes, '--IS_annotation', fn_ISinContigs_all, '--fn_out', fn_IStoRef_all_gff] # ' ' + params + ' > ' + fn_out]
 
+	command = command + thresholds.getThresholds_asList('calcInRef_posISorient_v2')
 	command = command + params
 
 	runTheCommand(command, 'Mapping identified IS positions to reference genome.') 
@@ -234,18 +298,21 @@ def convertBlastToGff(fn_contigsToRef_blastRes, fn_contigsToRef_gff, fn_out_conv
 
 	# subprocess.run(command, shell=True)
 
-def mergeLocalCounts(fn_ISinContig_all, fn_contigEstimates, fn_ISinContigs_merged, th_forMergingOverlaps, fn_out, additionalParams): 
-	command = ['python3', 'wais/scripts/mergeLocalCounts.py', '--fn_ISinGff', fn_ISinContig_all, '--fnOut_estimates', fn_contigEstimates, '--th_forMergingOverlaps', th_forMergingOverlaps, '--fnOut_gff3_merged', fn_ISinContigs_merged] #  ' ' + additionalParams + ' > ' + fn_out] 
+def mergeLocalCounts(fn_ISinContig_all, fn_contigEstimates, fn_ISinContigs_merged, fn_out, additionalParams, thresholds): 
+	command = ['python3', 'wais/scripts/mergeLocalCounts.py', '--fn_ISinGff', fn_ISinContig_all, '--fnOut_estimates', fn_contigEstimates,  '--fnOut_gff3_merged', fn_ISinContigs_merged] #  ' ' + additionalParams + ' > ' + fn_out] 
 
+	command = command + thresholds.getThresholds_asList('mergeLocalCounts')
 	command = command + additionalParams
+
 
 	runTheCommand(command, 'Merging local counts - to get estimates of IS insertions.')
 
 	# subprocess.run(command, shell=True)
 
-def calcInContig_posISOrient(fn_blastRes_IStoContigs, fn_flanks1FilteredB, fn_flanks2FilteredB, th_minPident, th_minPalignLen, th_minAlignLen, fn_ISinContig_gff, fn_out): 
-	command = ['python3', 'wais/scripts/calcInContig_posISOrient.py', '--direct', fn_blastRes_IStoContigs, '--flanks1ToContigs', fn_flanks1FilteredB, '--flanks2ToContigs', fn_flanks2FilteredB, '--th_minPident', th_minPident, '--th_minPalignLen', th_minPalignLen, '--th_minAlignLen', th_minAlignLen, '--output_gff', fn_ISinContig_gff] #, ' > ' + fn_out]
+def calcInContig_posISOrient(fn_blastRes_IStoContigs, fn_flanks1FilteredB, fn_flanks2FilteredB, fn_ISinContig_gff, fn_out, thresholds): 
+	command = ['python3', 'wais/scripts/calcInContig_posISOrient.py', '--direct', fn_blastRes_IStoContigs, '--flanks1ToContigs', fn_flanks1FilteredB, '--flanks2ToContigs', fn_flanks2FilteredB, '--output_gff', fn_ISinContig_gff] #, ' > ' + fn_out]
 
+	command = command + thresholds.getThresholds_asList('calcInContig_posISOrient')
 	# subprocess.run(command, shell=True) 
 	runTheCommand(command, 'Calculating IS insertions in contigs.')
 
@@ -256,8 +323,10 @@ def rmFlanks_whenPairMismatchContig(fn_only1AndFlanks2, fn_only2AndFlanks1, fn_f
 	runTheCommand(command, 'Removing pairs when mismatched IS reads.')
 
 
-def summarizeOnlyToContig(fn_only1ToContigs_blastRes, fn_flanks2Filtered_to_contigs, th_minPident, th_alignAndLenDiff, fn_only1AndFlanks2):
-	command = ["python3", "wais/scripts/summarizeOnlyToContig.py", "--only", fn_only1ToContigs_blastRes, "--flanks", fn_flanks2Filtered_to_contigs, "--th_minPident", th_minPident, "--th_alignAndLenDiff", th_alignAndLenDiff] #, " > " + fn_only1AndFlanks2]
+def summarizeOnlyToContig(fn_only1ToContigs_blastRes, fn_flanks2Filtered_to_contigs, fn_only1AndFlanks2, thresholds):
+	command = ["python3", "wais/scripts/summarizeOnlyToContig.py", "--only", fn_only1ToContigs_blastRes, "--flanks", fn_flanks2Filtered_to_contigs] #, " > " + fn_only1AndFlanks2]
+
+	command = command + thresholds.getThresholds_asList('summarizeOnlyToContig')
 	
 	runTheCommand_redirectOutputToFile(command, 'Summarising "only" blastRes to contigs.',fn_only1AndFlanks2)
 
@@ -272,8 +341,10 @@ def loadOnlyAndPntFasta(fn_only1, fn_only2, fn_reads1, fn_reads2, fn_out_reads1,
 	# subprocess.run(command, shell=True) 
 
 
-def rmFlanks_whenOneDirFullAlign_v2(blastRes_1, blastRes_2, flanks_1, flanks_2, fn_out_flanks1Filtered, fn_out_flanks2Filtered, fn_out, dir_out_waisTmp):
+def rmFlanks_whenOneDirFullAlign_v2(blastRes_1, blastRes_2, flanks_1, flanks_2, fn_out_flanks1Filtered, fn_out_flanks2Filtered, fn_out, dir_out_waisTmp, thresholds):
 	command1 = ["python3", "wais/scripts/rmFlanks_whenOneDirFullAlign_v2.py", "--blastRes_1", blastRes_1, "--blastRes_2", blastRes_2, "--flanks_1", flanks_1, "--flanks_2", flanks_2, "--out_flanks_1", fn_out_flanks1Filtered, "--out_flanks_2", fn_out_flanks2Filtered] #, " > " + fn_out]
+
+	command1 = command1 + thresholds.getThresholds_asList('rmFlanks_whenOneDirFullAlign_v2')
 
 	command2 = ["mv", "only1.txt", "only2.txt", "both.txt", dir_out_waisTmp]
 
@@ -284,8 +355,10 @@ def rmFlanks_whenOneDirFullAlign_v2(blastRes_1, blastRes_2, flanks_1, flanks_2, 
 	# subprocess.run(command2, shell=True)
 
 
-def getFlankingSeqs(reads_to_IS_blastRes, reads, fn_out):
+def getFlankingSeqs(reads_to_IS_blastRes, reads, fn_out, thresholds):
 	command = ['python3', 'wais/scripts/getFlankingSeqs.py', '--reads_to_IS', reads_to_IS_blastRes, '--reads', reads] #  + ' > ' + fn_out]
+	
+	command = command + thresholds.getThresholds_asList('getFlankingSeqs')
 	
 	runTheCommand_redirectOutputToFile(command, 'WaIS - extracting flanking sequences.', fn_out)
 	# subprocess.run(command, shell=True)
@@ -421,6 +494,9 @@ def returnSlashIfMissing(dirName):
 
 
 def main(): 
+
+
+	
 	parser = argparse.ArgumentParser(description='Determine where the insertion sequences (IS) are in a reference genome, or an assembly (generated using short-reads) - using short-read sequences.')
 
 	parser.add_argument('--outputDir', required=True, nargs=1)
@@ -444,9 +520,51 @@ def main():
 	# --options_to_spades
 
 	## WaIS thresholds
+	### getFlankingSeqs.py (Step 7.)
+	parser.add_argument('--th_getFlankingSeqs_overlap', type=int, nargs=1, metavar='INT', help="Number of base pairs of IS alignment to include. Default=0.", default=[0])
+	parser.add_argument('--th_getFlankingSeqs_minChoppedLen', type=int, nargs=1, metavar='INT', help="Minimun chopped sequence length (excluding overlapping sequence) to keep that sequence for further analysis. Default=18.", default=[18])
 
+	### rmFlanks_whenOneDirFullAlign_v2 (Step 8.)
+	parser.add_argument('--th__rmFlanks_whenOneDirFullAlign_v2__minChoppedLen', type=int, nargs=1, metavar='INT', help="Minimun chopped sequence length (excluding overlapping sequence) to keep that sequence for further analysis. Default=18.", default=[18])
+	parser.add_argument('--th__rmFlanks_whenOneDirFullAlign_v2__buffer', type=int, nargs=1, metavar='INT', help="Buffer sequence length of the alignment of SKESA to complete genome to include, to see if the IS lies nearby. Default=0.", default=[0])
+
+	### summarizeOnlyToContig.py (Step 11.)
+	parser.add_argument('--th_summarizeOnlyToContig_minPident', type=int, nargs=1, metavar='INT', help="Minimum percent identity of alignment to keep (flanks to contig). Default=0.", default=[0])
+	parser.add_argument('--th_summarizeOnlyToContig_alignAndLenDiff', type=int, nargs=1, metavar='INT', help="Alignment and length difference to keep (flanks to contig). Default=10000.", default=[10000])
+
+	### calcInContig_posISOrient (Step 14.) 
+	parser.add_argument('--th__calcInContig_posISOrient__minPident', type=int, nargs=1, metavar='INT', help='Minimum percent identity of alignment to keep (flanks to contig). Default=0.', default=[0]) 
+	parser.add_argument('--th__calcInContig_posISOrient__minPalignLen', type=int, nargs=1, metavar='INT', help='The minimum percentage length of flank-sequence that aligns with contig. Default=0.', default=[0])
+	parser.add_argument('--th__calcInContig_posISOrient__minAlignLen', type=int, nargs=1, metavar='INT', help='The minimum alignment length. Default=18.', default=[18]) 
+	parser.add_argument('--th__calcInContig_posISOrient__minPident_direct', type=int, nargs=1, metavar='INT', help='Minimum percent identity of alignment to keep (direct IS to contig). Default=95.', default=[95]) 
+	parser.add_argument('--th__calcInContig_posISOrient__minAlignLen_direct', type=int, nargs=1, metavar='INT', help='The minimum alignment length of direct IS to contig. Default=18.', default=[18]) 
+	parser.add_argument('--th__calcInContig_posISOrient__clus_start', type=int, nargs=1, metavar='INT', help='Minimum number of clusters to evaluate in kMeans for each contig. Default=2.', default=[2])
+	parser.add_argument('--th__calcInContig_posISOrient__clus_end', type=int, nargs=1, metavar='INT', help='Maximum number of clusters to evaluate in kMeans for each contig. Default=11.', default=[11]) 
+	parser.add_argument('--th__calcInContig_posISOrient__minFlankDepth', type=int, nargs=1, metavar='INT', help='The minimum number of flanks (/reads) to keep IS position. Default=10.', default=[10]) 
+
+	### mergeLocalCounts (Steps 15a, 15b, 15c)
+	parser.add_argument('--th_mergeLocalCounts_toCountAsEdge', type=int, nargs=1, metavar='INT', help='This distance from the (start+th) or (end-th) is checked to determine if insertion is counted as being an edge insertion or an insertion in the middle. Default = 100 (bps).', default=[100]) 
+	parser.add_argument('--th_mergeLocalCounts_forMergingOverlaps', type=int, nargs=1, metavar='INT', help='Distance between two IS, before calling them merges, Default = 20.', default=[20]) 
+	parser.add_argument('--th_mergeLocalCounts_separator', nargs=1, metavar='STRING', help='Separate unresolvable IS and orientations. Default is ":". Choose a separator that is not an alphabet in the IS identifier.', default=[':']) 
+
+	### (Reference:) calcInRef_posISorient_v2.py 
+	parser.add_argument('--th__calcInRef_posISorient_v2__merge', type=int, nargs=1, metavar='INT', help='Threshold (i.e. sequence length in base pairs) to merge overlapping IS. Value only used in conjection with --isMerged. Default=20.', default=[20])
+	parser.add_argument('--th__calcInRef_posISorient_v2__alignDiff_IStoContig', type=int, metavar='INT', help="Maximum alignment difference between align-length and contig-length. Default=15.", default=[5])
+	parser.add_argument('--th__calcInRef_posISorient_v2__separator', nargs=1, metavar='STRING', help='Separate unresolvable IS and orientations. Default is ":". Choose a separator that is not an alphabet in the IS identifier.', default=[':']) 
+
+	### (Reference:) ISinRefGenome_conglomerate.py
+	parser.add_argument('--th__ISinRefGenome_conglomerate__toMergePosFound', type=int, nargs=1, metavar='INT', help='To merge IS-positions found within \'th\'. Default=20.', default=[20])
+	parser.add_argument('--th__ISinRefGenome_conglomerate__finalAlignOverlap', type=int, nargs=1, metavar='INT', help='To merge IS-positions found within \'th\'. Default=0.', default=[0])
+
+	parser.usage = parser.format_help()
 	args = parser.parse_args()
 	
+	thresholds = Thresholds(args)
+	thresholds.printThresholds()
+	# print (thresholds.getThresholds_asList('getFlankingSeqs'))
+
+	# print ("Printing the args:")
+	# print (args)
 
 	checkSpades(args.runSpades, args.assembly)
 	
@@ -466,7 +584,7 @@ def main():
 
 	## Checking input thresholds
 
-	runWaIS(args.outputDir[0], args.runSpades, args.assembly, args.reads_1[0], args.reads_2[0], args.ISseqs[0], args.reference[0], args.prokka)
+	# runWaIS(args.outputDir[0], args.runSpades, args.assembly, args.reads_1[0], args.reads_2[0], args.ISseqs[0], args.reference[0], args.prokka, thresholds)
 
 
 

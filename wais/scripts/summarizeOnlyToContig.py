@@ -104,8 +104,8 @@ def main():
     parser.add_argument('--only', nargs=1, required=True, help="Blast results of only1|2.fasta to contigs")
     parser.add_argument('--flanks', nargs=1, required=True, help="Blast results of partial aligned reads (aka. flanks, aka pairs) to contigs")
 
-    parser.add_argument('--th_minPident', nargs=1, type=float, default=[0], help="Minimum percent identity of alignment to keep (flanks to contig)")
-    parser.add_argument('--th_alignAndLenDiff', nargs=1, type=int, default=[10000], help="Alignment and length difference to keep (flanks to contig)")
+    parser.add_argument('--th_minPident', nargs=1, type=float, default=[0], help="Minimum percent identity of alignment to keep (flanks to contig). Default=0.")
+    parser.add_argument('--th_alignAndLenDiff', nargs=1, type=int, default=[10000], help="Alignment and length difference to keep (flanks to contig). Default=10000.")
 
 
     args = parser.parse_args()

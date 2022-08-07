@@ -949,7 +949,7 @@ def main():
 
 
 	parser.add_argument('--IStoContig', nargs=1, required=True, help='Blast results of IS to contigs.')
-	parser.add_argument('--th_alignDiff_IStoContig', nargs=1, default=[5], type=int, help="Maximum alignment difference between align-length and contig-length.")
+	parser.add_argument('--th_alignDiff_IStoContig', nargs=1, default=[5], type=int, help="Maximum alignment difference between align-length and contig-length. Default=15.")
 
 
 	parser.add_argument('--directIStoRef', nargs=1, required=True, help='Blast results of IS to reference.')
@@ -962,10 +962,10 @@ def main():
 	parser.add_argument('--fn_out', nargs=1, required=True, help='IS annotations for reference in gff3 format.')
 
 	parser.add_argument('--isMerged', nargs=1, required=False, help='Only print the mapped IS from contigs (from the merged set). Default is False.', default=['False'])
-	parser.add_argument('--merge_th', nargs=1, required=False, help='Threshold (i.e. sequence length in base pairs) to merge overlapping IS. Value only used in conjection with --isMerged. Default is 20.', default=[20])
-	parser.add_argument('--ignoreOrient', nargs=1, required=False, help='Values as True or False - to igore or-else check orientation, repsectively. Ignored orientation is appended as orient1:orient2. Default = False', default=["False"])
-	parser.add_argument('--ignoreIStype', nargs=1, required=False, help='Values as True or False - to igore or-else check IStype, repsectively. Ignored IStypes are appended as IStype1:IStype2:..:IStypeN. This automatically sets isIgnoreOrient to "True". Default = False.', default=["False"])
-	parser.add_argument('--separator', required=False, default=[':'], help='Separate unresolvable IS and orientations. Default is ":". Choose a separator that is not an alphabet in the IS identifier.')
+	parser.add_argument('--merge_th', nargs=1, required=False, help='Threshold (i.e. sequence length in base pairs) to merge overlapping IS. Value only used in conjection with --isMerged. Default=20.', default=[20])
+	parser.add_argument('--ignoreOrient', nargs=1, required=False, help='Values as True or False - to igore or-else check orientation, repsectively. Ignored orientation is appended as orient1:orient2. Default=False.', default=["False"])
+	parser.add_argument('--ignoreIStype', nargs=1, required=False, help='Values as True or False - to igore or-else check IStype, repsectively. Ignored IStypes are appended as IStype1:IStype2:..:IStypeN. This automatically sets isIgnoreOrient to "True". Default=False.', default=["False"])
+	parser.add_argument('--separator', required=False, default=[':'], help='Separate unresolvable IS and orientations. Default=":". Choose a separator that is not an alphabet in the IS identifier.')
 
 	args = parser.parse_args()
 

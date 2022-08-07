@@ -857,24 +857,24 @@ def main():
     parser.add_argument('--flanks2ToContigs', nargs=1, required=True, help='Flanks2 to contigs')
 
     ## Thresholds
-    parser.add_argument('--th_minPident', nargs=1, default=[0], type=float, help='Minimum percent identity of alignment to keep (flanks to contig)')
-    parser.add_argument('--th_minPalignLen', nargs=1, default=[0], type=float, help='The minimum percentage length of flank-sequence that aligns with contig.')
-    parser.add_argument('--th_minAlignLen', nargs=1, default=[18], type=float, help='The minimum alignment length.')
+    parser.add_argument('--th_minPident', nargs=1, default=[0], type=float, help='Minimum percent identity of alignment to keep (flanks to contig). Default=0.')
+    parser.add_argument('--th_minPalignLen', nargs=1, default=[0], type=float, help='The minimum percentage length of flank-sequence that aligns with contig. Default=0.')
+    parser.add_argument('--th_minAlignLen', nargs=1, default=[18], type=float, help='The minimum alignment length. Default=18.')
 
     # For direct IS to contigs: Want to be a bit more generous with alignLen, but more strict with pIdent.
-    parser.add_argument('--th_minPident_direct', nargs=1, default=[95], type=float, help='Minimum percent identity of alignment to keep (direct IS to contig)')
-    parser.add_argument('--th_minAlignLen_direct', nargs=1, default=[18], type=int, help='The minimum alignment length of direct IS to contig.')
+    parser.add_argument('--th_minPident_direct', nargs=1, default=[95], type=float, help='Minimum percent identity of alignment to keep (direct IS to contig). Default=95.')
+    parser.add_argument('--th_minAlignLen_direct', nargs=1, default=[18], type=int, help='The minimum alignment length of direct IS to contig. Default=18.')
 
 
-    parser.add_argument('--kmeans_clus_start', nargs=1, default=[2], type=int, help='Minimum number of clusters to evaluate in kMeans for each contig.')
-    parser.add_argument('--kmeans_clus_end', nargs=1, default=[11], type=int, help='Maximum number of clusters to evaluate in kMeans for each contig.')
+    parser.add_argument('--kmeans_clus_start', nargs=1, default=[2], type=int, help='Minimum number of clusters to evaluate in kMeans for each contig. Default=2.')
+    parser.add_argument('--kmeans_clus_end', nargs=1, default=[11], type=int, help='Maximum number of clusters to evaluate in kMeans for each contig. Default=11.')
 
 
 
     # parser.add_argument()
     parser.add_argument('--output_gff', nargs=1, required=True, help='Output filename.vcf to output the IS structural variants to w.r.t. contigs.')
 
-    parser.add_argument('--th_minFlankDepth', nargs=1, default=[10], type=int, help='The minimum number of flanks (/reads) to keep IS position.')
+    parser.add_argument('--th_minFlankDepth', nargs=1, default=[10], type=int, help='The minimum number of flanks (/reads) to keep IS position. Default=10.')
 
     args = parser.parse_args()
 

@@ -124,8 +124,8 @@ def main():
     parser = argparse.ArgumentParser(description='Get reads which dont align to IS sequences (some IS-aligned-seq. can be added to the unaligned seqs - as skesa does contain alignments to IS)')
 
     parser.add_argument('--reads_to_IS', nargs=1, help="Blast results for reads to IS", required=True)
-    parser.add_argument('--overlap', nargs=1, help="Number of base pairs of IS alignment to include", default=[0], type=int)
-    parser.add_argument('--minChoppedLen', nargs=1, default=[18], type=int, help="Minimun chopped sequence length (excluding overlapping sequence) to keep that sequence for further analysis.")
+    parser.add_argument('--overlap', nargs=1, help="Number of base pairs of IS alignment to include. Default=0.", default=[0], type=int)
+    parser.add_argument('--minChoppedLen', nargs=1, default=[18], type=int, help="Minimun chopped sequence length (excluding overlapping sequence) to keep that sequence for further analysis. Default=18.")
     parser.add_argument('--reads', nargs=1, required=True, help="Reads filename; in fasta format.")
 
     args = parser.parse_args()

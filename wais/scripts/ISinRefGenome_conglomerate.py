@@ -442,9 +442,9 @@ def main():
 
 	# parser.add_argument('--outputFile', nargs=1, required=True, help='E.g. wiis_compl.txt')
 
-	parser.add_argument('--th_toMergePosFound', nargs=1, required=False, default=[20], help='To merge IS-positions found within \'th\'.')
+	parser.add_argument('--th_toMergePosFound', nargs=1, required=False, default=[20], help='To merge IS-positions found within \'th\'. Default=20.')
 
-	parser.add_argument('--th_finalAlignOverlap', nargs=1, required=False, default=[0], help='To merge IS-positions found within \'th\'.')
+	parser.add_argument('--th_finalAlignOverlap', nargs=1, required=False, default=[0], help='To merge IS-positions found within \'th\'. Default=0.')
 
 
 	# parser.add_argument('--mgefinder_denovo', nargs=1, required=False, help='Filename path to 01....tsv')
