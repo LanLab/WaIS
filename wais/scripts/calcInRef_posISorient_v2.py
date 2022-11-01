@@ -6,7 +6,7 @@ import re
 import argparse
 import sys 
 import calcInContig_posISOrient
-
+from collections import OrderedDict
 
 Col_qSeqId = 0; 
 Col_sSeqId = 1; 
@@ -24,6 +24,7 @@ Col_gff3_info = 8
 
 SITES = 'sites'
 INFO = 'information'
+ISinContigsIds = 'ISids_inContigs'
 
 DIRECT_TO_REF = 'DirectInRef'
 # CALC_FROM_CONTIG = 'CalcFromContig'
@@ -36,42 +37,50 @@ SIDE_L = 'Side_l'
 SIDE_S = 'Side_s'
 
 #################################### TOP_LVL 
-def calcPosToRef(fn_contigToRef, fn_IStoContig, th_alignDiff_IStoContig, fn_gff_ISannot, fn_directIStoRef, fn_out, isMerged, th_distForMerge, isIgnoreOrient, isIgnoreIStype, separator):
+def calcPosToRef(fn_contigToRef, fn_IStoContig, th_alignDiff_IStoContig, fn_gff_ISannot, fn_directIStoRef, fn_out, isMerged, th_distForMerge, isIgnoreOrient, isIgnoreIStype, separator, th_directOverlap, th_maxAlignLenDiff, th_contigToRef_ISonlyLenDiff):
 
 	# 1. Load direct IStoRef
 	dict_direct = load_direct_IStoRef(fn_directIStoRef)
 	
+	"""
+	for (refId, refLen) in dict_direct: 
+		for (ISid, refStart, refEnd, orient, isContigFlipped) in dict_direct[(refId, refLen)]: 
+			print (refId + ' ' + str(refLen) + ' ' + ISid + ' ' + str(refStart) + ' ' + str(refEnd) + ' ' + orient + ' '  + str(isContigFlipped))
+	"""
+
+	
 	# 2. contigs which are completely IS 
 	list_contigsWithComplIS = identifyISonlyContigs(fn_IStoContig, th_alignDiff_IStoContig)
 
-	# 3. load contigToRef 
-	dict_contigToRef = load_contigToRef(fn_contigToRef, list_contigsWithComplIS, dict_direct) 
-
-	# print (dict_contigToRef)
 
 	# 4. Load IS in Contig (gff)
 	(dict_IStoContig, dict_color) = load_ISinContig_gff(fn_gff_ISannot)
+
+
+	# 3. load contigToRef 
+	(dict_contigToRef, list_allContigs, dict_contigToRef_alignLen) = load_contigToRef(fn_contigToRef, list_contigsWithComplIS, dict_direct, th_maxAlignLenDiff, dict_IStoContig, th_contigToRef_ISonlyLenDiff) 
 
  
 	# 5. Print calc and print IS position from contig to ref
 	list_ISinRef_calc = determineISforRef(dict_contigToRef, dict_IStoContig)
 
-
-
-
+	
 	if isMerged == 'True':
-		(dict_mergedIgnoreIStype, dict_mergedIgnoreOrient, dict_mergedIStoRef) = doTheMerge(dict_direct, list_ISinRef_calc, th_distForMerge, isIgnoreOrient, isIgnoreIStype, separator)
-
+		(dict_mergedIgnoreIStype, dict_mergedIgnoreOrient, dict_mergedIStoRef, list_seqRegions) = doTheMerge(dict_direct, list_ISinRef_calc, th_distForMerge, isIgnoreOrient, isIgnoreIStype, separator)
+		
 		if len(dict_mergedIgnoreIStype) > 0: 
 			print('Printing for --ignoreIStype')
-			printGff3Merged(dict_mergedIgnoreIStype, fn_out, dict_direct, dict_color)
+			printGff3Merged(dict_mergedIgnoreIStype, fn_out, dict_direct, dict_color, list_seqRegions, True, True, th_directOverlap)
+			# getISnotMappedToRef()
 		elif len(dict_mergedIgnoreOrient) > 0:
 			print('Printing for --ignoreOrient')
-			printGff3Merged(dict_mergedIgnoreOrient, fn_out, dict_direct, dict_color)
+			printGff3Merged(dict_mergedIgnoreOrient, fn_out, dict_direct, dict_color, list_seqRegions, True, False, th_directOverlap)
 		else: 
 			print('Printing for --merged')
-			printGff3Merged(dict_mergedIStoRef, fn_out, dict_direct, dict_color)
+			printGff3Merged(dict_mergedIStoRef, fn_out, dict_direct, dict_color, list_seqRegions, False, False, th_directOverlap)
+			# getISnotMappedToRef(list_allContigs, dict_contigToRef_alignLen, dict_IStoContig, list_contigsWithComplIS)
 
+			# calcAndPrintISnotMappedToRef(dict_ISidsInContigs_counts, dict_IStoContig)
 		# Printing the 
 
 	# if isMerged == 'False': 
@@ -94,7 +103,7 @@ def calcPosToRef(fn_contigToRef, fn_IStoContig, th_alignDiff_IStoContig, fn_gff_
 					dict_color[ISid] = calcInContig_posISOrient.generateRandomColor()
 
 					 
-				calcInContig.printGff3Line(fh_out, refId, calcInContig.PROG_NAME, calcInContig.SO_, start_ISinRef_dir, end_ISinRef_dir, 'Inf', orient_IStoRef_dir, '.', 'Name=' + ISid + ';isCalcFromContig=False' + ';color=' + dict_color[ISid]); 
+				# calcInContig.printGff3Line(fh_out, refId, calcInContig.PROG_NAME, calcInContig.SO_, start_ISinRef_dir, end_ISinRef_dir, 'Inf', orient_IStoRef_dir, '.', 'Name=' + ISid + ';isCalcFromContig=False' + ';color=' + dict_color[ISid]); 
 
 
 
@@ -103,6 +112,10 @@ def calcPosToRef(fn_contigToRef, fn_IStoContig, th_alignDiff_IStoContig, fn_gff_
 
 			if (refInfo not in list_refsEncountered): 
 				list_refsEncountered.append(refInfo)
+
+
+			## TODO: Check here ifInDirect (?)
+ 			# calcIfInDirect(dict_direct, refInfo, calcStart_IStoRef, calcEnd_IStoRef, calcOrient_IStoRef, attributes)
 
 			calcInContig.printGff3Line(fh_out, refInfo[0], progName, seqFeatType, calcStart_IStoRef, calcEnd_IStoRef, score, calcOrient_IStoRef, phase, attributes)
 
@@ -122,7 +135,7 @@ def calcPosToRef(fn_contigToRef, fn_IStoContig, th_alignDiff_IStoContig, fn_gff_
 			modified.write(data)
 
 		modified.close() 
-
+	
 	# for key in list_ISinRef_calc: 
 	#    print (str(key))
 	"""
@@ -139,6 +152,43 @@ def calcPosToRef(fn_contigToRef, fn_IStoContig, th_alignDiff_IStoContig, fn_gff_
 
 
 #################################### AUX
+def isISonlyAlignedRegion(contigId, contigStart, contigEnd, dict_IStoContig, th_contigToRef_ISonlyLenDiff): 
+
+	Gff3_start = 3
+	Gff3_end = 4
+	Gff3_orient = 5
+
+	alignLen = contigEnd - contigStart 
+
+
+	# print ('############### IS_TO_CONTIG')
+	if contigId in dict_IStoContig: 
+		for arr_anIns in dict_IStoContig[contigId]: 
+			
+			anIns_start = int(arr_anIns[Gff3_start]) 
+			anIns_end = int(arr_anIns[Gff3_end])
+
+			isOverlap = isAnyOverlap(anIns_start, anIns_end, contigStart, contigEnd, 0) # hard-overlap.
+			
+			anIns_alignLen = anIns_end - anIns_start 
+			
+			if isOverlap == True and abs(alignLen - anIns_alignLen) <= th_contigToRef_ISonlyLenDiff: 
+				# print (str(anIns_start) + ':' + str(anIns_end) + '\t' + str(contigStart) + ':' + str(contigEnd) + '\t' + str(anIns_alignLen) + '\t' + str(alignLen) + '\t' + str(abs(alignLen - anIns_alignLen)))
+
+				return True
+
+			# print ('ContigId found in dict_ISinContig ' + contigId)
+
+	"""	
+	for contigId in dict_IStoContig: 
+		print (contigId) 
+		for arr_anIns in dict_IStoContig[contigId]: 
+			
+			print (arr_anIns[Gff3])
+	"""
+	return False 
+
+
 def extractISidFromAttr(attrs): 
 
 	arr = attrs.split(";")
@@ -149,34 +199,38 @@ def extractISidFromAttr(attrs):
 	middle = 0; 
 	side_l = 0
 	side_s = 0
+	uniqId = -1; 
 
 	for val in arr: 
-		if re.match('^Name\=', val): 
+		if re.match(r'^Name\=', val): 
 			ISid = re.sub('Name=', '', val)
 
-		elif re.match('^num_Inf\=', val): 
+		elif re.match(r'^num_Inf\=', val): 
 			directContig = re.sub('num_Inf=', '', val)
 			directContig = int(directContig)
 
-		elif re.match('^combined_Depth\=', val): 
+		elif re.match(r'^combined_Depth\=', val): 
 			readMapping = re.sub('combined_Depth=', '', val)
 			readMapping = int(readMapping)
 
-		elif re.match('^side_s\=', val): 
+		elif re.match(r'^side_s\=', val): 
 			side_s = re.sub('side_s=', '', val)
 			side_s = int(side_s)
 
-		elif re.match('^side_l\=', val): 
+		elif re.match(r'^side_l\=', val): 
 			side_l = re.sub('side_l=', '', val)
 			side_l = int(side_l)
 
-		elif re.match('^positionInContig\=', val): 
+		elif re.match(r'^positionInContig\=', val): 
 			posInContig = re.sub('positionInContig=', '', val)
 			if (posInContig == EDGE): 
 				edge = 1 
 			elif posInContig == MIDDLE: 
 				middle = 1 
 
+		elif re.match(r'^uniqId\=', val):
+			uniqId = re.sub(r'^uniqId\=', '', val)
+			# print ('Found uniqId as ' + val)
 
 
 
@@ -189,40 +243,101 @@ def extractISidFromAttr(attrs):
 			ISid = re.sub('Name=', '', val)
 		"""
 
-	return (ISid, directContig, readMapping, edge, middle, side_s, side_l)
+	return (ISid, directContig, readMapping, edge, middle, side_s, side_l, uniqId)
 
-def isInDirect(dict_direct, start_calc, end_calc):
+def findIfInDirect(dict_direct, start_calc, end_calc, isIgnoreOrient, isIgnoreIStype, ISid_calc, orient_calc, th_directOverlap):
 
-	
+	in_refStart = None
+	in_refEnd = None
+	in_ISid = None
+	in_orient = None
+
+	isInDirect = False 
+
+	list_refIS = []
+
 	for (refId, refLen) in dict_direct: 
 		for (ISid, start_ISinRef_dir, end_ISinRef_dir, orient_IStoRef_dir, isRefFlipped) in dict_direct[(refId, refLen)]:  
+			if ISid_calc == ISid and orient_calc == orient_IStoRef_dir and isAnyOverlap(start_calc, end_calc, start_ISinRef_dir, end_ISinRef_dir, th_directOverlap): 
 
-			if (start_calc >= start_ISinRef_dir and start_calc <= end_ISinRef_dir) and (end_calc >= start_ISinRef_dir and end_calc <= end_ISinRef_dir): 
-				return True 
+				isInDirect = True 
 
-	return False 
-	
+				in_refStart = start_ISinRef_dir
+				in_refEnd = end_ISinRef_dir
+				in_ISid = ISid
+				in_orient = orient_IStoRef_dir
+
+				# return (True, in_refStart, in_refEnd, in_ISid, in_orient)
+				list_refIS.append((in_refStart, in_refEnd, in_ISid, in_orient))
+
+
+			elif isIgnoreIStype == True and isAnyOverlap(start_calc, end_calc, start_ISinRef_dir, end_ISinRef_dir, th_directOverlap): 
+				
+				isInDirect = True 
+
+				in_refStart = start_ISinRef_dir
+				in_refEnd = end_ISinRef_dir
+				in_ISid = ISid
+				in_orient = orient_IStoRef_dir
+
+				# return (True, in_refStart, in_refEnd, in_ISid, in_orient)
+				list_refIS.append((in_refStart, in_refEnd, in_ISid, in_orient))
+			
+			
+			elif isIgnoreOrient == True and ISid_calc == ISid and isAnyOverlap(start_calc, end_calc, start_ISinRef_dir, end_ISinRef_dir, th_directOverlap): 
+				
+				isInDirect = True 
+
+				in_refStart = start_ISinRef_dir
+				in_refEnd = end_ISinRef_dir
+				in_ISid = ISid
+				in_orient = orient_IStoRef_dir
+
+				# return (True, in_refStart, in_refEnd, in_ISid, in_orient) 
+				list_refIS.append((in_refStart, in_refEnd, in_ISid, in_orient))
+
+
+			
+
+
+	return (isInDirect, list_refIS)
+
+
 
 def doTheMerge(dict_direct, list_ISinRef_calc, th_distForMerge, isIgnoreOrient, isIgnoreIStype, separator):
+
+	list_seqRegions = [] 
 
 	dict_mergedIStoRef = dict() # dict[(refId)] => [(start, end, ISid, orient)] => [(...)]
 	dict_mergedIgnoreOrient = dict() 
 	dict_mergedIgnoreIStype = dict()
-	for (refId, refLen) in dict_direct: 
+
+	
+	for (refId, refLen) in dict_direct:
+		if (refId, int(refLen)) not in list_seqRegions: 
+			list_seqRegions.append((refId, int(refLen))) 
+			
+	"""
 		for (ISid, start_ISinRef_dir, end_ISinRef_dir, orient_IStoRef_dir, isRefFlipped) in sorted(dict_direct[(refId, refLen)],  key=lambda tup: tup[1]): 
 
-
 			checkAndAddToMerge(dict_mergedIStoRef, refId, start_ISinRef_dir, end_ISinRef_dir, ISid, orient_IStoRef_dir, th_distForMerge, 1, 0, 0, 0, 0, 0, 0)
+	"""
 
-	for (refInfo, gff3_tool, gff3_IS, refStart, refEnd, score, orient, gff_col, attrs) in sorted(list_ISinRef_calc, key=lambda tup: tup[3]): 
+	for ((refId, refLen), gff3_tool, gff3_IS, refStart, refEnd, score, orient, gff_col, attrs) in sorted(list_ISinRef_calc, key=lambda tup: tup[3]): 
 		
-		(ISid, directContig, readMapping, edge, middle, side_s, side_l) = extractISidFromAttr(attrs)
+		if (refId, int(refLen)) not in list_seqRegions: 
+			list_seqRegions.append((refId, int(refLen))) 
+
+			
+		(ISid, directContig, readMapping, edge, middle, side_s, side_l, uniqId) = extractISidFromAttr(attrs)
 		
 		# print(attrs)
 		# print (str((ISid, directContig, readMapping, edge, middle, side_s, side_l)))
 		# print ('Val: ' + str(refStart) + ' ' + str(refEnd) + ' ' + str(orient) + ' ' + ISid)
+		# print(refInfo)
+		checkAndAddToMerge(dict_mergedIStoRef, refId, refStart, refEnd, ISid, orient, th_distForMerge, 0, directContig, readMapping, edge, middle, side_s, side_l, uniqId)
+
 		
-		checkAndAddToMerge(dict_mergedIStoRef, refId, refStart, refEnd, ISid, orient, th_distForMerge, 0, directContig, readMapping, edge, middle, side_s, side_l)
 
 	if isIgnoreOrient == 'True' or isIgnoreIStype == 'True': 
 		dict_mergedIgnoreOrient = reduceSet_3(dict_mergedIStoRef, th_distForMerge, separator) 
@@ -294,12 +409,12 @@ def doTheMerge(dict_direct, list_ISinRef_calc, th_distForMerge, isIgnoreOrient, 
 		# print (diffKeys_2)
 
 
-	return (dict_mergedIgnoreIStype, dict_mergedIgnoreOrient, dict_mergedIStoRef)
+	return (dict_mergedIgnoreIStype, dict_mergedIgnoreOrient, dict_mergedIStoRef, list_seqRegions)
 
 def extractISidAndColor(arrLine, dict_colors):
 
-	print ("The arrLine is ") 
-	print (arrLine[Col_gff3_info]) 
+	# print ("The arrLine is ") 
+	# print (arrLine[Col_gff3_info]) 
 
 	arr = arrLine[Col_gff3_info].split(';')
 	ISid = '' 
@@ -311,6 +426,7 @@ def extractISidAndColor(arrLine, dict_colors):
 		if 'color=' in val: 
 			color = re.sub('^color=', '', val)
 
+
 	if ISid not in dict_colors:
 		if color != '':  
 			dict_colors[ISid] = color
@@ -320,13 +436,16 @@ def extractISidAndColor(arrLine, dict_colors):
 
 	return (ISid, color)
 
-def printGff3Merged(dict_, fn_out, dict_direct, dict_color): 
+def printGff3Merged(dict_, fn_out, dict_direct, dict_color, list_seqRegions, isIgnoreOrient, isIgnoreIStype, th_directOverlap): 
+
+	dict_ISidsInContigs_counts = dict() 
+
 
 	fh_out = open (fn_out, 'w+')
 	
 	fh_out.write('##gff-version 3.1.26' + '\n')
 	
-	for (refId, refLen) in dict_direct: 
+	for (refId, refLen) in list_seqRegions: 
 		if refId in dict_: 
 			fh_out.write('##sequence-region ' + refId + ' ' + '1' + ' ' + str(refLen) + '\n')
 
@@ -334,6 +453,9 @@ def printGff3Merged(dict_, fn_out, dict_direct, dict_color):
 		for (startPos, endPos, ISid, orient) in dict_[refId][SITES]: 
 
 			dict_info = dict_[refId][INFO][(startPos, endPos, ISid, orient)]
+			
+			# print ('The dict_info is')
+			# print (dict_info)
 
 			attributes = 'Name=' + ISid + ';'
 			attributes = attributes + DIRECT_TO_REF + '=' + str(dict_info[DIRECT_TO_REF]) + ';'
@@ -343,6 +465,9 @@ def printGff3Merged(dict_, fn_out, dict_direct, dict_color):
 			attributes = attributes + MIDDLE + '=' + str(dict_info[MIDDLE]) + ';'
 			attributes = attributes + SIDE_L + '=' + str(dict_info[SIDE_L]) + ';'
 			attributes = attributes + SIDE_S + '=' + str(dict_info[SIDE_S]) + ';'
+			attributes = attributes + ISinContigsIds + '=' + ','.join(dict_info[ISinContigsIds]) + ';'
+
+			addCounts_ISidsInContigs(dict_ISidsInContigs_counts, dict_info[ISinContigsIds])
 
 			if (ISid not in dict_color):
 				color = calcInContig_posISOrient.generateRandomColor()
@@ -350,6 +475,22 @@ def printGff3Merged(dict_, fn_out, dict_direct, dict_color):
 
 			attributes = attributes + 'color' + '=' + dict_color[ISid] + ';'
 
+			(isInDirect, list_directRefIS) = findIfInDirect(dict_direct, startPos, endPos, isIgnoreOrient, isIgnoreIStype, ISid, orient, th_directOverlap)
+			attributes = attributes + 'isNew=' + str(not isInDirect) + ';'
+
+			if isInDirect == True: 
+				for idx, (direct_start, direct_end, direct_ISid, direct_orient) in enumerate(list_directRefIS): 
+					if idx == 0: 
+						attributes = attributes + 'refIS='
+					
+						
+					attributes = attributes + str(direct_start) + ':' + str(direct_end) + ':' + direct_ISid + ':' + direct_orient
+
+					if idx != len(list_directRefIS) - 1: 
+						attributes = attributes + ','
+
+				attributes = attributes + ';'
+		
 
 			if '+' in orient and '-' in orient: 
 				calcInContig.printGff3Line(fh_out, refId, 'WiIS', 'insertion_sequence', startPos, endPos, '.', '.', '.', attributes)
@@ -360,6 +501,8 @@ def printGff3Merged(dict_, fn_out, dict_direct, dict_color):
 
 
 	fh_out.close() 
+
+	return dict_ISidsInContigs_counts
 
 def reduceSet_4(dict_reducedSet1, th_forMergingOverlaps, separator):
 
@@ -483,18 +626,28 @@ def reduceSet_3(dict_reducedSet1, th_forMergingOverlaps, separator):
 
 	return dict_reducedSet2
 
-def checkAndAddToMerge(dict_refWithMerges, refId, startOrig, endOrig, ISidOrig, orientOrig, th_distForMerge, isCalcFromContig, directContig, readMapping, edge, middle, side_s, side_l):
+def checkAndAddToMerge(dict_refWithMerges, refId, startOrig, endOrig, ISidOrig, orientOrig, th_distForMerge, isCalcFromContig, directContig, readMapping, edge, middle, side_s, side_l, uniqId):
 
 	if (startOrig > endOrig): 
 		tmp = startOrig
 		startOrig = endOrig 
 		endOrig = tmp 
 
+		tmp = side_s 
+		side_s = side_l 
+		side_l = tmp 
+
+		if orientOrig == '+': 
+			orientOrig = '-'
+		else: 
+			orientOrig = '+'
+
 	if refId not in dict_refWithMerges: 
 		dict_refWithMerges[refId] = {SITES: [], INFO: {}}
 
-
+	
 		dict_refWithMerges[refId][SITES].append((startOrig, endOrig, ISidOrig, orientOrig))
+		
 		
 		
 		## updateMergedSiteInfo(dict_refWithMerges[refId][INFO], None, startOrig, endOrig, None, None, None, None, isCalcFromContig, directContig, readMapping, edge, middle, side_s, side_l, ISidOrig, orientOrig, ISidOrig, orientOrig)
@@ -508,6 +661,7 @@ def checkAndAddToMerge(dict_refWithMerges, refId, startOrig, endOrig, ISidOrig, 
 		dict_prev[(startOrig, endOrig, ISidOrig, orientOrig)][MIDDLE] = middle
 		dict_prev[(startOrig, endOrig, ISidOrig, orientOrig)][SIDE_S] = side_s
 		dict_prev[(startOrig, endOrig, ISidOrig, orientOrig)][SIDE_L] = side_l
+		dict_prev[(startOrig, endOrig, ISidOrig, orientOrig)][ISinContigsIds] = [uniqId]
 		
 		updateMergedSiteInfo_2(dict_refWithMerges[refId][INFO], dict_prev, startOrig, endOrig, startOrig, endOrig, None, None, ISidOrig, orientOrig, ISidOrig, orientOrig, None, None)
 
@@ -515,7 +669,9 @@ def checkAndAddToMerge(dict_refWithMerges, refId, startOrig, endOrig, ISidOrig, 
 
 		isOverlapFound = False
 		for idx, (start_saved, end_saved, IS_saved, orient_saved) in enumerate(dict_refWithMerges[refId][SITES]): 
-			if ISidOrig == IS_saved and orientOrig == orient_saved and isAnyOverlap(startOrig, endOrig, start_saved, end_saved, th_distForMerge):
+
+			# print ('startOrig:' + str(startOrig) + ' endOrig:' + str(endOrig) + ' start_saved: ' + str(start_saved) + ' end_saved: ' + str(end_saved))
+			if ISidOrig == IS_saved and orientOrig == orient_saved and isAnyOverlap(startOrig, endOrig, start_saved, end_saved, int(th_distForMerge)):
 				
 
 				newStart = startOrig if (startOrig <= start_saved) else start_saved
@@ -537,6 +693,7 @@ def checkAndAddToMerge(dict_refWithMerges, refId, startOrig, endOrig, ISidOrig, 
 				dict_prev[(startOrig, endOrig, ISidOrig, orientOrig)][MIDDLE] = middle
 				dict_prev[(startOrig, endOrig, ISidOrig, orientOrig)][SIDE_S] = side_s
 				dict_prev[(startOrig, endOrig, ISidOrig, orientOrig)][SIDE_L] = side_l
+				dict_prev[(startOrig, endOrig, ISidOrig, orientOrig)][ISinContigsIds] = [uniqId]
 				updateMergedSiteInfo_2(dict_refWithMerges[refId][INFO], dict_prev, newStart, newEnd, startOrig, endOrig, start_saved, end_saved, ISidOrig, orientOrig, ISidOrig, orientOrig, ISidOrig, orientOrig)
 
 				# print ("Updated: " + str(newStart) + ":" + str(newEnd) + ":" + str(ISidOrig) + ':" + str(or'  ' PrevKey: ' + str(start_saved) + ":" + str(end_saved) )
@@ -558,6 +715,7 @@ def checkAndAddToMerge(dict_refWithMerges, refId, startOrig, endOrig, ISidOrig, 
 			dict_prev[(startOrig, endOrig, ISidOrig, orientOrig)][MIDDLE] = middle
 			dict_prev[(startOrig, endOrig, ISidOrig, orientOrig)][SIDE_S] = side_s
 			dict_prev[(startOrig, endOrig, ISidOrig, orientOrig)][SIDE_L] = side_l
+			dict_prev[(startOrig, endOrig, ISidOrig, orientOrig)][ISinContigsIds] = [uniqId]
 			updateMergedSiteInfo_2(dict_refWithMerges[refId][INFO], dict_prev, startOrig, endOrig, startOrig, endOrig, None, None, ISidOrig, orientOrig, ISidOrig, orientOrig, None, None)
 
 def updateMergedSiteInfo_2(dict_info_new, dict_info_prev, newStart, newEnd, prevStart, prevEnd, oldStart, oldEnd, newISid, newOrient, prevISid, prevOrient, oldISid, oldOrient):
@@ -571,6 +729,7 @@ def updateMergedSiteInfo_2(dict_info_new, dict_info_prev, newStart, newEnd, prev
 		dict_info_new[(newStart, newEnd, newISid, newOrient)][MIDDLE] = dict_info_prev[(prevStart, prevEnd, prevISid, prevOrient)][MIDDLE]
 		dict_info_new[(newStart, newEnd, newISid, newOrient)][SIDE_S] = dict_info_prev[(prevStart, prevEnd, prevISid, prevOrient)][SIDE_S]
 		dict_info_new[(newStart, newEnd, newISid, newOrient)][SIDE_L] = dict_info_prev[(prevStart, prevEnd, prevISid, prevOrient)][SIDE_L]
+		dict_info_new[(newStart, newEnd, newISid, newOrient)][ISinContigsIds] = dict_info_prev[(prevStart, prevEnd, prevISid, prevOrient)][ISinContigsIds]
         
 	else: 
 		dict_info_new[(newStart, newEnd, newISid, newOrient)][DIRECT_TO_REF] = dict_info_new[(newStart, newEnd, newISid, newOrient)][DIRECT_TO_REF] +  dict_info_prev[(prevStart, prevEnd, prevISid, prevOrient)][DIRECT_TO_REF]
@@ -580,6 +739,7 @@ def updateMergedSiteInfo_2(dict_info_new, dict_info_prev, newStart, newEnd, prev
 		dict_info_new[(newStart, newEnd, newISid, newOrient)][MIDDLE] = dict_info_new[(newStart, newEnd, newISid, newOrient)][MIDDLE]  +  dict_info_prev[(prevStart, prevEnd, prevISid, prevOrient)][MIDDLE]
 		dict_info_new[(newStart, newEnd, newISid, newOrient)][SIDE_S] = dict_info_new[(newStart, newEnd, newISid, newOrient)][SIDE_S] +  dict_info_prev[(prevStart, prevEnd, prevISid, prevOrient)][SIDE_S]
 		dict_info_new[(newStart, newEnd, newISid, newOrient)][SIDE_L] = dict_info_new[(newStart, newEnd, newISid, newOrient)][SIDE_L] + dict_info_prev[(prevStart, prevEnd, prevISid, prevOrient)][SIDE_L]
+		dict_info_new[(newStart, newEnd, newISid, newOrient)][ISinContigsIds] = dict_info_new[(newStart, newEnd, newISid, newOrient)][ISinContigsIds] + dict_info_prev[(prevStart, prevEnd, prevISid, prevOrient)][ISinContigsIds]
 
 	if oldStart != None and oldEnd != None and oldISid != None and oldOrient != None and not (newStart == oldStart and newEnd == oldEnd and newISid == oldISid and oldOrient == newOrient): 
 		# print ("Now also add, this info, then del key.")
@@ -591,6 +751,7 @@ def updateMergedSiteInfo_2(dict_info_new, dict_info_prev, newStart, newEnd, prev
 		dict_info_new[(newStart, newEnd, newISid, newOrient)][MIDDLE] = dict_info_new[(newStart, newEnd, newISid, newOrient)][MIDDLE]  +  dict_info_new[(oldStart, oldEnd, oldISid, oldOrient)][MIDDLE]
 		dict_info_new[(newStart, newEnd, newISid, newOrient)][SIDE_S] = dict_info_new[(newStart, newEnd, newISid, newOrient)][SIDE_S] +  dict_info_new[(oldStart, oldEnd, oldISid, oldOrient)][SIDE_S]
 		dict_info_new[(newStart, newEnd, newISid, newOrient)][SIDE_L] = dict_info_new[(newStart, newEnd, newISid, newOrient)][SIDE_L] + dict_info_new[(oldStart, oldEnd, oldISid, oldOrient)][SIDE_L]
+		dict_info_new[(newStart, newEnd, newISid, newOrient)][ISinContigsIds] = dict_info_new[(newStart, newEnd, newISid, newOrient)][ISinContigsIds] + dict_info_new[(oldStart, oldEnd, oldISid, oldOrient)][ISinContigsIds]
 
 		del dict_info_new[(oldStart, oldEnd, oldISid, oldOrient)]
 
@@ -788,7 +949,6 @@ def load_ISinContig_gff(fn_gff_ISannot):
 				if arr[Col_progName] == calcInContig.PROG_NAME: 
 					# print (line) 
 
-
 					contigStart = int(arr[Col_contigStart])
 					contigEnd = int(arr[Col_contigEnd])
 
@@ -805,6 +965,7 @@ def load_direct_IStoRef(fn_directIStoRef):
 
 	dict_direct = calcInContig.loadDirectIStoContig(fn_directIStoRef, [], 0, 0)
 
+	# dict_direct = {} 
 	return dict_direct 
 
 def identifyISonlyContigs(fn_IStoContig, th_alignDiff_IStoContig):
@@ -826,26 +987,73 @@ def identifyISonlyContigs(fn_IStoContig, th_alignDiff_IStoContig):
 					# print (line)
 					list_contigsWithComplIS.append(arr[Col_sSeqId]) 
 
-	# print (list_contigsWithComplIS) 
+	print ('List with complete IS')
+	print (list_contigsWithComplIS) 
 	return (list_contigsWithComplIS)
 
+def getISnotMappedToRef(list_allContigs, dict_contigToRef_alignLen, dict_IStoContig, list_contigsWithComplIS):
 
-def load_contigToRef(fn_blastRes, list_contigsWithComplIS, dict_direct): 
+	print('**************************************************** ISinContig:' + str(len(dict_IStoContig)) + ' ContigToRef:' + str(len(dict_contigToRef_alignLen)))
+
+	# for aContigId in dict_IStoContig: 
+		# if aContigId not in list_contigsWithComplIS and (aContigId not in dict_contigToRef_alignLen or isAlignLenDiffHigh(dict_contigToRef_alignLen[aContigId])) : 
+		#	print ('Print all IS in this contig (if not covered in alignment). ' + aContigId)
+		#	print (dict_IStoContig[aContigId])
+
+
+
+		# else: 
+			# Check aligned len
+		# 	print ('Aligned len ' + str(dict_contigToRef_alignLen[aContigId]))
+"""
+	for aContigId in list_allContigs: 
+		if aContigId not in dict_contigToRef_alignLen: 
+			print('ContigId not alignedToRef: ' + aContigId)
+			if aContigId in dict_IStoContig:
+				print ('IS not aligned to ref:')
+				print (dict_IStoContig[aContigId])
+
+
+"""
+def isAlignLenDiffHigh(dict_contigToRef_alignInfo):
+
+	if dict_contigToRef_alignInfo['total'] - dict_contigToRef_alignInfo['covered'] > 1: 
+		return True
+	
+	return False
+
+def load_contigToRef(fn_blastRes_contigToRef, list_contigsWithComplIS, dict_direct, th_maxAlignLenDiff, dict_IStoContig, th_contigToRef_ISonlyLenDiff): 
 	## MAY NEED TO FILTER THE ALIGNMENTS. 
 
 	dict_contigsAligned = {} # {contigId} => {total: , covered: , positions: []}
 
 	dict_contigToRef = {} # dict_{(refId, refLen)} => [(ContigId, refStart, refEnd, orient_contigToRef, contigStart, contigEnd, alignLen)]
-	with open(fn_blastRes, 'r') as fh: 
+	
+	list_allContigs = [] # [contigs1, contigs2, contigs3, ..., contigsN]
+
+	with open(fn_blastRes_contigToRef, 'r') as fh: 
 
 		contigId_counter = 0
 		contigId_prev = None
 
 		for line in fh: 
-			if not re.match('^#', line):
-				line = line.strip() 
+			line = line.strip() 
+			
+			if re.match('^# Query: ', line):
+				
+				contigId = re.sub('^# Query: ', '', line)
+				# print (contigId)
+
+				if contigId not in list_allContigs: 
+					
+					list_allContigs.append(contigId)
+
+
+			elif not re.match('^#', line):
 				
 				arr = line.split('\t')
+
+				# print ('ContigId ...? ' + arr[Col_qSeqId])
 
 				if (arr[Col_qSeqLen] not in list_contigsWithComplIS): 
 
@@ -881,8 +1089,12 @@ def load_contigToRef(fn_blastRes, list_contigsWithComplIS, dict_direct):
 
 
 					## Do some filtering...
-					
-					if (arr[Col_qSeqId] not in dict_contigsAligned or (dict_contigsAligned[arr[Col_qSeqId]]['total'] != dict_contigsAligned[arr[Col_qSeqId]]['covered'])) :  
+					# Filtering if alignment region is exactly the same as ISinRef. 
+					if isISonlyAlignedRegion(arr[Col_qSeqId], contigStart, contigEnd, dict_IStoContig, th_contigToRef_ISonlyLenDiff) == True: 
+						continue 
+
+					# Filtering: 
+					if (arr[Col_qSeqId] not in dict_contigsAligned or not (dict_contigsAligned[arr[Col_qSeqId]]['total'] - dict_contigsAligned[arr[Col_qSeqId]]['covered'] <= th_maxAlignLenDiff)) :  
 
 						contigId_counter = contigId_counter + 1 
 
@@ -901,6 +1113,8 @@ def load_contigToRef(fn_blastRes, list_contigsWithComplIS, dict_direct):
 							dict_contigsAligned[arr[Col_qSeqId]]['positions'] = [contigStart, contigEnd]
 						else: 
 							dict_contigsAligned[arr[Col_qSeqId]]['covered'] = updateContigsPositions(dict_contigsAligned[arr[Col_qSeqId]]['positions'], contigStart, contigEnd) 
+
+
 					# list_completeAlignment.append(arr[Col_qSeqId])     
 					# print ('ADDING THIS THING')
 
@@ -910,11 +1124,23 @@ def load_contigToRef(fn_blastRes, list_contigsWithComplIS, dict_direct):
 
 					#else: 
 					#    print ('True')
+	print ('################')
+	print ('Num. of all contigs in contigToRef blastRes ' + str(len(list_allContigs)))
+	print ('Num. of dict_contigsAligned ' + str(len(dict_contigsAligned))) 
+
+	
+	for refId in dict_contigToRef: 
+		print ('Num. of contigsToRef ' + str(len(dict_contigToRef[refId])))
+
+	print ('################')
+
+	for key in dict_contigsAligned: 
+		print ('ContigsAligned: ' + str(key) + "\t" + str(dict_contigsAligned[key])) 
+		
+
+	return (dict_contigToRef, list_allContigs, dict_contigsAligned)
 
 
-	# for key in dict_contigsAligned: 
-		# print ('ContigsAligned: ' + str(key) + "\t" + str(dict_contigsAligned[key])) 
-	return dict_contigToRef
 
 def updateContigsPositions(list_s_e, contigStart, contigEnd): 
 
@@ -939,7 +1165,66 @@ def isAlignmentInDirRefIS(newRefStart, newRefEnd, dict_direct): # Is checking fo
 	"""
 
 	return False      
-					
+
+def calcIfInDirect(dict_direct, IStoRef_refInfo, IStoRef_start, IStoRef_end, IStoRef_orient, IStoRef_attributes): 
+	print ("# IStoRef")
+	print (IStoRef_refInfo)
+	print (IStoRef_attributes)
+
+
+def addCounts_ISidsInContigs(dict_, list_uniqISids): 
+
+	for uniqId in list_uniqISids: 
+		if uniqId not in dict_: 
+			dict_[uniqId] = 0
+
+		dict_[uniqId] = dict_[uniqId] + 1
+
+def calcAndPrintISnotMappedToRef(dict_ISidsInContigs_counts, dict_IStoContig):
+
+	### TO DELETE!!!! 
+	del dict_ISidsInContigs_counts['1']
+	del dict_ISidsInContigs_counts['2']
+	del dict_ISidsInContigs_counts['3']
+	del dict_ISidsInContigs_counts['4']
+	del dict_ISidsInContigs_counts['5']
+	del dict_ISidsInContigs_counts['6']
+	del dict_ISidsInContigs_counts['7']
+	del dict_ISidsInContigs_counts['8']
+	del dict_ISidsInContigs_counts['9']
+	del dict_ISidsInContigs_counts['10']
+
+	list_allISids = [] 
+
+	for contigId in dict_IStoContig: 
+		for arrLine in dict_IStoContig[contigId]: 
+			uniqId = extractUniqId(arrLine[Col_gff3_info])
+			
+			if uniqId not in list_allISids: 
+				list_allISids.append(uniqId)
+			
+			
+
+	print('================================= ' + str(len(list_allISids)) + ' ' + str(len(dict_ISidsInContigs_counts)))
+
+	list_uniqISids_notInRef = list(set(list_allISids) - set(dict_ISidsInContigs_counts))
+
+
+	print ('Diff ids are: ')
+	print (list_uniqISids_notInRef)
+	
+	for uniqISid in OrderedDict(sorted(dict_ISidsInContigs_counts.items(), key=lambda t: int(t[0]))): 
+		print (str(uniqISid) + '\t' + str(dict_ISidsInContigs_counts[uniqISid]))
+
+def extractUniqId(infoStr): 
+	arr = infoStr.split(';')
+
+	for val in arr: 
+		if re.match('^uniqId\=', val): 
+			uniqId = re.sub('^uniqId\=', '', val)
+
+	return uniqId
+
 #################################### MAIN 
 def main(): 
 
@@ -949,7 +1234,7 @@ def main():
 
 
 	parser.add_argument('--IStoContig', nargs=1, required=True, help='Blast results of IS to contigs.')
-	parser.add_argument('--th_alignDiff_IStoContig', nargs=1, default=[5], type=int, help="Maximum alignment difference between align-length and contig-length. Default=15.")
+	parser.add_argument('--th_alignDiff_IStoContig', nargs=1, default=[5], type=int, help="Maximum alignment difference between align-length and contig-length to designate a contig as completeIS. This contig's alignment to the reference is then excluded. Default=5.")
 
 
 	parser.add_argument('--directIStoRef', nargs=1, required=True, help='Blast results of IS to reference.')
@@ -960,6 +1245,7 @@ def main():
 	parser.add_argument('--IS_annotation', nargs=1, required=True, help='IS annotations file in gff3 format.')
 
 	parser.add_argument('--fn_out', nargs=1, required=True, help='IS annotations for reference in gff3 format.')
+	## parser.add_argument('--fn_out_notInRef', nargs=1, required=True, help='IS annotations not in reference in gff3 format.')
 
 	parser.add_argument('--isMerged', nargs=1, required=False, help='Only print the mapped IS from contigs (from the merged set). Default is False.', default=['False'])
 	parser.add_argument('--merge_th', nargs=1, required=False, help='Threshold (i.e. sequence length in base pairs) to merge overlapping IS. Value only used in conjection with --isMerged. Default=20.', default=[20])
@@ -967,9 +1253,14 @@ def main():
 	parser.add_argument('--ignoreIStype', nargs=1, required=False, help='Values as True or False - to igore or-else check IStype, repsectively. Ignored IStypes are appended as IStype1:IStype2:..:IStypeN. This automatically sets isIgnoreOrient to "True". Default=False.', default=["False"])
 	parser.add_argument('--separator', required=False, default=[':'], help='Separate unresolvable IS and orientations. Default=":". Choose a separator that is not an alphabet in the IS identifier.')
 
+	parser.add_argument('--th_maxContigToRef_AlignLenDiff', required=False, default=[10], help='Total len (of contigs) - AlignedLen (of contigs) <= this_threshold. Default = 10.')
+
+	parser.add_argument('--th_contigToRef_ISonlyLenDiff', required=False, default=[50], help='Alignment length difference between contigToRef and IStoContig - to remove alignments of just the IS in contigs aligning to the reference contigs.')
+
+	parser.add_argument('--overlap_th', nargs=1, required=False, help='Threshold to check if identified IS overlaps with those found in the directIS. Default=20.', default=[20])
 	args = parser.parse_args()
 
-	calcPosToRef(args.contigToRef[0], args.IStoContig[0], args.th_alignDiff_IStoContig[0], args.IS_annotation[0], args.directIStoRef[0], args.fn_out[0], args.isMerged[0], args.merge_th[0], args.ignoreOrient[0], args.ignoreIStype[0], args.separator[0])
+	calcPosToRef(args.contigToRef[0], args.IStoContig[0], args.th_alignDiff_IStoContig[0], args.IS_annotation[0], args.directIStoRef[0], args.fn_out[0], args.isMerged[0], int(args.merge_th[0]), args.ignoreOrient[0], args.ignoreIStype[0], args.separator[0], int(args.overlap_th[0]), int(args.th_maxContigToRef_AlignLenDiff[0]), int(args.th_contigToRef_ISonlyLenDiff[0]))
 
 if __name__ == '__main__':
 	main()

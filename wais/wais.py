@@ -8,8 +8,10 @@ import subprocess
 import logging 
 from datetime import datetime
 import glob
+import shutil 
 
-logging.basicConfig(filename='wais_' + str(datetime.now()) + '.log', level=logging.DEBUG)
+logFile = 'wais_' + str(datetime.now()) + '.log'
+logging.basicConfig(filename=logFile, level=logging.DEBUG)
 
 class Thresholds:
 
@@ -20,7 +22,8 @@ class Thresholds:
 		'calcInContig_posISOrient': {'--th_minPident': None, '--th_minPalignLen': None, '--th_minAlignLen': None, '--th_minPident_direct': None, '--th_minAlignLen_direct': None, '--kmeans_clus_start': None, '--kmeans_clus_end': None, '--th_minFlankDepth': None},
 		'mergeLocalCounts': {'--th_forMergingOverlaps': None, '--th_toCountAsEdge': None}, 
 		'calcInRef_posISorient_v2': {'--th_alignDiff_IStoContig': None, '--merge_th': None}, 
-		'ISinRefGenome_conglomerate': {'--th_toMergePosFound': None, '--th_finalAlignOverlap': None}
+		'ISinRefGenome_conglomerate': {'--th_toMergePosFound': None, '--th_finalAlignOverlap': None},
+		'appendEstimatedWrtRef': {'--th_overlap': None}
 	}
 
 	def __init__(self, args): 
@@ -56,6 +59,8 @@ class Thresholds:
 		if self.dict_th['mergeLocalCounts']['--separator'] != self.dict_th['calcInRef_posISorient_v2']['--separator']: 
 			sys.exit('Error: mergeLocalCounts.separator and calcInRef_posISorient_v2.separator should be the same.' )
 
+		self.dict_th['appendEstimatedWrtRef']['--th_overlap'] = args.th__appendEstimatedWrtRef__overlapTh[0]
+
 
 	def getThresholds_asList(self, scriptName):
 		asList = [] 
@@ -73,7 +78,7 @@ class Thresholds:
 
 
 #################################### TOP_LVL 
-def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseReads, fn_ISseqs, fn_reference, isProkka, thresholds): 
+def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseReads, fn_ISseqs, fn_reference, fn_referenceAnnotations, thresholds, keepTmp): 
 
 	(dir_out_wais, dir_out_waisTmp, dir_out_waisFinal, dir_out_spades) = createOutputDirStruct(dir_out, isRunSpades)
 
@@ -115,9 +120,13 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	fn_ISinContigs_ignoreOrient = dir_out_waisFinal + 'ISinContigs_ignoreOrient.gff'
 	fn_ISinContigs_ignoreIStype = dir_out_waisFinal + 'ISinContigs_ignoreIStype.gff'
 	
-	fn_contigEstimates_merged = dir_out_waisFinal + 'estimates_contigs_merged.txt'
-	fn_contigEstimates_ignoreOrient = dir_out_waisFinal + 'estimates_contigs_ignoreOrient.txt'
-	fn_contigEstimates_ignoreIStype = dir_out_waisFinal + 'estimates_contigs_ignoreIStype.txt'
+	fn_contigEstimates_merged = dir_out_waisFinal + 'estimates_merged.txt'
+	fn_contigEstimates_ignoreOrient = dir_out_waisFinal + 'estimates_ignoreOrient.txt'
+	fn_contigEstimates_ignoreIStype = dir_out_waisFinal + 'estimates_ignoreIStype.txt'
+
+	fn_estimates_singleRow_merged = dir_out_waisFinal + 'estimates_singleRow_merged.txt'
+	fn_estimates_singleRow_ignoreOrient = dir_out_waisFinal + 'estimates_singleRow_ignoreOrient.txt'
+	fn_estimates_singleRow_ignoreIStype = dir_out_waisFinal + 'estimates_singleRow_ignoreIStype.txt'
 
 	fn_out_rmFlanks = dir_out_waisTmp + 'outfile_rmFlanks_whenOneDirFullAlign'
 	fn_out_loadOnlyAndPntFasta = dir_out_waisTmp + 'outfile_loadOnlyAndPntFasta'
@@ -129,13 +138,20 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	fn_contigsToRef_blastRes = dir_out_waisTmp + 'contigsToRef_blastRes'
 	fn_contigsToRef_gff = dir_out_waisTmp + 'contigsToRef_gff'
 	fn_out_convertBlastToGff = dir_out_waisTmp + 'outfile_convertBlastToGff'
-	fn_IStoRef_blastRes = dir_out_waisTmp + 'IStoRef_blastRes'
+
+
+	fn_ISinRef_blastRes = dir_out_waisTmp + 'ISinRef_blastRes'
+	fn_ISinRef_gff = dir_out_waisFinal + 'ISinRef.gff'
+
 	fn_IStoRef_gff_all = dir_out_waisFinal + 'IStoRef_all.gff'
 	fn_IStoRef_gff_merged = dir_out_waisFinal + 'IStoRef_merged.gff'
 	fn_IStoRef_gff_ignoreOrient = dir_out_waisFinal + 'IStoRef_ignoreOrient.gff'
 	fn_IStoRef_gff_ignoreIStype = dir_out_waisFinal + 'IStoRef_ignoreIStype.gff'
 	fn_out = dir_out_waisTmp + 'outfile'
-	fn_presenceAbsence = dir_out_waisFinal + 'inRef_presenceAbsence'
+	fn_presAbs_merged = dir_out_waisFinal + 'inRef_presenceAbsence_merged'
+	fn_presAbs_ignoreOrient = dir_out_waisFinal + 'inRef_presenceAbsence_ignoreOrient'
+	fn_presAbs_ignoreIStype = dir_out_waisFinal + 'inRef_presenceAbsence_ignoreIStype'
+	
 	fn_foundNotfound = dir_out_waisFinal + 'inRef_found_notFound'
 	
 	## Prokka 
@@ -147,9 +163,23 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	dir_prokka_reference = dir_out_wais + 'PROKKA_reference'
 	fn_prokka_reference = '' 
 	
-	
+	## 3. RefAnnots
+	fn_refAnnotsFN = '' 
+	if fn_referenceAnnotations != None: 
+		fn_refAnnotsFN = os.path.basename(fn_referenceAnnotations)
 
+		# print (fn_refAnnotsFN)
 	
+	fn_allInterrupAnnots_merged = dir_out_waisFinal + fn_refAnnotsFN + '-' + 'all_interupAnnot_merged'
+	fn_allInterrupAnnots_ignoreOrient = dir_out_waisFinal + fn_refAnnotsFN + '-' + 'all_interupAnnot_ignoreOrient'
+	fn_allInterrupAnnots_ignoreIStype = dir_out_waisFinal + fn_refAnnotsFN + '-' + 'all_interupAnnot_ignoreIStype'
+
+	fn_onlyInterupAnnots_merged = dir_out_waisFinal + fn_refAnnotsFN + '-' + 'only_interupAnnot_merged'
+	fn_onlyInterupAnnots_ignoreOrient = dir_out_waisFinal + fn_refAnnotsFN + '-' + 'only_interupAnnot_ignoreOrient'
+	fn_onlyInterupAnnots_ignoreIStype = dir_out_waisFinal + fn_refAnnotsFN + '-' + 'only_interupAnnot_ignoreIStype'
+	
+	# sys.exit(); 
+
 	# 1. makeblastdb of assembly
 	makeBlastDb(fn_assembly, fn_blastdb_assembly, 'nucl')
 	
@@ -206,34 +236,71 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 
 	
 	# 15a. In Contigs: mergeLocalCounts (merge-overlaps)
-	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_merged, fn_ISinContigs_merged, fn_out_mergeLocalCounts, [], thresholds)
+	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_merged, fn_ISinContigs_merged, fn_out_mergeLocalCounts, [], thresholds, dir_out, fn_estimates_singleRow_merged)
 
 	# 15b. In Contigs: mergeLocalCounts (merge, ignoreOrient,)
-	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreOrient, fn_ISinContigs_ignoreOrient, fn_out_mergeLocalCounts, ['--ignoreOrient', 'True'], thresholds)
+	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreOrient, fn_ISinContigs_ignoreOrient, fn_out_mergeLocalCounts, ['--ignoreOrient', 'True'], thresholds, dir_out, fn_estimates_singleRow_ignoreOrient)
 
 	# 15c. In Contigs: mergeLocalCounts (merge, ignoreOrient, ignoreIStype)
-	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreIStype, fn_ISinContigs_ignoreIStype, fn_out_mergeLocalCounts, ['--ignoreOrient', 'True', '--ignoreIStype', 'True'], thresholds)
+	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreIStype, fn_ISinContigs_ignoreIStype, fn_out_mergeLocalCounts, ['--ignoreOrient', 'True', '--ignoreIStype', 'True'], thresholds, dir_out, fn_estimates_singleRow_ignoreIStype)
 
 	
-	## If reference 
+	## 16. If reference 
 	if fn_reference != None:
+
+		# 1. Make reference blast db. 
 		makeBlastDb(fn_reference, fn_blastdb_reference, 'nucl')
-		
-		doBlastn_outfmt7(fn_ISseqs, fn_blastdb_reference, fn_IStoRef_blastRes) # blast IS to refs 
+
+		# 2. Blast IS to refs, and convert blastRes to gff3 with different levels of merges (and write to estimates as a 'golden' count).
+		doBlastn_outfmt7(fn_ISseqs, fn_blastdb_reference, fn_ISinRef_blastRes) 
+		convertBlastToGff_IStoRef(fn_ISinRef_blastRes, fn_contigEstimates_merged, fn_ISinRef_gff, fn_out_convertBlastToGff, [], fn_estimates_singleRow_merged) # converted (with merged)
+		convertBlastToGff_IStoRef(fn_ISinRef_blastRes, fn_contigEstimates_ignoreOrient, fn_ISinRef_gff,fn_out_convertBlastToGff, ['--ignoreOrient', 'True'], fn_estimates_singleRow_ignoreOrient) # converted (with ignoreOrient)
+		convertBlastToGff_IStoRef(fn_ISinRef_blastRes, fn_contigEstimates_ignoreIStype, fn_ISinRef_gff, fn_out_convertBlastToGff, ['--ignoreIStype', 'True'], fn_estimates_singleRow_ignoreIStype) # converted (with ignoreIStype) 
+
+		# 3. Blast contigs to ref.
 		doBlastn_outfmt7(fn_assembly, fn_blastdb_reference, fn_contigsToRef_blastRes) # blast contigs to refs
 
+		# 4. (not used)
 		convertBlastToGff(fn_contigsToRef_blastRes, fn_contigsToRef_gff, fn_out_convertBlastToGff) 
-	
-		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_all, fn_out, [], thresholds) 
-		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_merged, fn_out, ['--isMerged', 'True'], thresholds) 
-		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_ignoreOrient, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True'], thresholds) 
-		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_gff_ignoreIStype, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True', '--ignoreIStype', 'True'], thresholds) 
-	
-		genPresAbsTblWrtRef(fn_IStoRef_blastRes, fn_IStoRef_gff_all, fn_presenceAbsence)
-	
-		ISinRefGenome_conglomerate(fn_IStoRef_blastRes, fn_IStoRef_gff_all, fn_foundNotfound, thresholds)
+		# addRefCountsToEstimatesFile() (Script ready) (write to the estimates file)
 
+		# 5. Calculate IS to Contigs (using mappings from IStoContigsToRef_blastResults )
+		# calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_ISinRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_merged, fn_IStoRef_gff_all, fn_out, [], thresholds) 
+
+		## TODO: Redirect outputs from the following 3 to /dev/null (and delete).
+		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_ISinRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_merged, fn_IStoRef_gff_merged, fn_out, ['--isMerged', 'True'], thresholds) 
+		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_ISinRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_ignoreOrient, fn_IStoRef_gff_ignoreOrient, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True'], thresholds) 
+		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_ISinRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_ignoreIStype, fn_IStoRef_gff_ignoreIStype, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True', '--ignoreIStype', 'True'], thresholds) 
+
+		# 6. Append IS in ref. to estimates.txt files. 
+		appendEstimatedWrtRef(fn_IStoRef_gff_merged, fn_ISinContigs_merged, fn_contigEstimates_merged, fn_estimates_singleRow_merged, fn_out)
+		appendEstimatedWrtRef(fn_IStoRef_gff_ignoreOrient, fn_ISinContigs_ignoreOrient, fn_contigEstimates_ignoreOrient, fn_estimates_singleRow_ignoreOrient, fn_out)
+		appendEstimatedWrtRef(fn_IStoRef_gff_ignoreIStype, fn_ISinContigs_ignoreIStype, fn_contigEstimates_ignoreIStype, fn_estimates_singleRow_ignoreIStype, fn_out)
+		
+		# 7. Generate a presence absence table with regards to the ref-IS (additionally those inserted at the new positions in the ref-genome). 
+		genPresAbsTblWrtRef(fn_ISinRef_blastRes, fn_IStoRef_gff_merged, fn_presAbs_merged, dir_out)
+		genPresAbsTblWrtRef(fn_ISinRef_blastRes, fn_IStoRef_gff_ignoreOrient, fn_presAbs_ignoreOrient, dir_out)
+		genPresAbsTblWrtRef(fn_ISinRef_blastRes, fn_IStoRef_gff_ignoreIStype, fn_presAbs_ignoreIStype, dir_out)
+
+
+		# 7. If user provides ref annotations: determine if those interrupted or not. 
+		if fn_referenceAnnotations != None: 
+			insertionsWrtRefAnnotations(fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_merged, fn_allInterrupAnnots_merged, fn_onlyInterupAnnots_merged) 
+			
+			insertionsWrtRefAnnotations(fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_merged, fn_allInterrupAnnots_ignoreOrient, fn_onlyInterupAnnots_ignoreOrient) 
+		
+			insertionsWrtRefAnnotations(fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_merged, fn_allInterrupAnnots_ignoreIStype, fn_onlyInterupAnnots_ignoreIStype) 
+		
+		# insertionsWrtRefAnnotations()
+
+		# Estimates of IStoRef.py
+		# insertionsWrtRefAnnotations.py
 	
+		# genPresAbsTblWrtRef(fn_IStoRef_blastRes, fn_IStoRef_gff_all, fn_presenceAbsence)
+	
+		# ISinRefGenome_conglomerate(fn_IStoRef_blastRes, fn_IStoRef_gff_all, fn_foundNotfound, thresholds)
+
+	"""	
 	## If prokka 
 	if isProkka: 
 		# For contigs 
@@ -246,6 +313,15 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 			runProkka(fn_reference, dir_prokka_reference, 'reference') 
 			# bedtoolsIntersect()
 	# ... 
+	"""
+	if fn_referenceAnnotations != None: 
+		# Run a ISinsertionWrtAnnotations.py script
+		pass 
+
+	if not keepTmp: 
+		shutil.rmtree(dir_out_waisTmp)
+
+
 	
 #################################### AUX - Prokka 
 def bedtoolsIntersect():
@@ -264,6 +340,24 @@ def runProkka(fn_input, dir_output, str_runningOn):
 	return fn_prokka_out[0]
 
 #################################### AUX - Calling WaIS scripts
+def insertionsWrtRefAnnotations(fn_reference, fn_refAnnotations, fn_ISannotations, fn_allAnnots, fn_onlyInterupAnnots):
+	command = ["python3", "wais/scripts/insertionsWrtRefAnnotations.py", "--reference", fn_reference, "--ref_annotation", fn_refAnnotations, '--IS_annotation', fn_ISannotations, '--outfile', fn_allAnnots, '--outfile_onlyInterrupted', fn_onlyInterupAnnots]
+
+	# command = command + thresholds.getThresholds_asList('ISinRefGenome_conglomerate')
+	# command = command + params 
+
+	runTheCommand(command, 'Mapping identified IS positions to reference genome.') 
+	
+
+def appendEstimatedWrtRef(fn_ISmappedToRef, fn_ISinContigs, fn_estimates, fn_estimates_singleRow, fn_out): 
+	command = ["python3", "wais/scripts/appendEstimatedWrtRef_v2.py", "--IStoRef", fn_ISmappedToRef, "--fn_estimates", fn_estimates, '--fn_estimates_singleRow', fn_estimates_singleRow, '--ISinContigs', fn_ISinContigs]
+
+	# command = command + thresholds.getThresholds_asList('appendEstimatedWrtRef')
+	# command = command + params 
+
+	runTheCommand_redirectOutputToFile(command, 'Mapping identified IS positions to reference genome.', fn_out) 
+
+
 def ISinRefGenome_conglomerate(fn_IStoRef_blastRes, fn_IStoRef_gff, fn_res, thresholds):
 	command = ["python3", "wais/scripts/ISinRefGenome_conglomerate.py", "--IStoRef_blastRes", fn_IStoRef_blastRes, "--IStoRef_gff", fn_IStoRef_gff] # + " > " + fn_res] 
 
@@ -271,11 +365,12 @@ def ISinRefGenome_conglomerate(fn_IStoRef_blastRes, fn_IStoRef_gff, fn_res, thre
 
 	runTheCommand_redirectOutputToFile(command, 'Getting IS in reference, conglomerated.', fn_res)
 
+	
 	# subprocess.run(command, shell=True)
 
 
-def genPresAbsTblWrtRef(fn_IStoRef_blastRes, fn_IStoRef_gff, fn_presenceAbsence):
-	command = ["python3", "wais/scripts/genPresAbsTblWrtRef.py", "--IStoRef_blast", fn_IStoRef_blastRes, "--IStoRef_illuminaCalc", fn_IStoRef_gff] #  + " > " + fn_presenceAbsence]
+def genPresAbsTblWrtRef(fn_ISinRef_blastRes, fn_IStoRef_gff, fn_presenceAbsence, isolateId):
+	command = ["python3", "wais/scripts/genPresAbsTblWrtRef.py", "--IStoRef_blast", fn_ISinRef_blastRes, "--IStoRef_mapped", fn_IStoRef_gff, "--isolateId", isolateId] #  + " > " + fn_presenceAbsence]
 
 	runTheCommand_redirectOutputToFile(command, 'Generating IS site presence, or absence, for an isolate w.r.t. reference.', fn_presenceAbsence)
 
@@ -287,9 +382,16 @@ def calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_co
 	command = command + thresholds.getThresholds_asList('calcInRef_posISorient_v2')
 	command = command + params
 
-	runTheCommand(command, 'Mapping identified IS positions to reference genome.') 
+	runTheCommand_redirectOutputToFile(command, 'Mapping identified IS positions to reference genome.', fn_out) 
 	# subprocess.run(command, shell=True)
 	
+def convertBlastToGff_IStoRef(fn_IStoRef_blastRes, fn_estimates, fn_IStoRef_gff, fn_out_convertBlastToGff, additionalArgs, fn_estimates_singleRow): 
+	command = ['python3', 'wais/scripts/convertBlastToGff_ref.py', '--blastRes', fn_IStoRef_blastRes, '--fn_estimates', fn_estimates, '--out', fn_IStoRef_gff, '--fn_estimates_singleRow', fn_estimates_singleRow]
+
+	command = command + additionalArgs
+
+	runTheCommand_redirectOutputToFile(command, 'Converting contigs-to-ref BLAST results to gff3.', fn_out_convertBlastToGff)
+	 
 
 def convertBlastToGff(fn_contigsToRef_blastRes, fn_contigsToRef_gff, fn_out_convertBlastToGff):
 	command = ['python3', 'wais/scripts/convertBlastToGff.py', '--blastRes', fn_contigsToRef_blastRes, '--out', fn_contigsToRef_gff] # , ' > ' + fn_out_convertBlastToGff]
@@ -298,8 +400,8 @@ def convertBlastToGff(fn_contigsToRef_blastRes, fn_contigsToRef_gff, fn_out_conv
 
 	# subprocess.run(command, shell=True)
 
-def mergeLocalCounts(fn_ISinContig_all, fn_contigEstimates, fn_ISinContigs_merged, fn_out, additionalParams, thresholds): 
-	command = ['python3', 'wais/scripts/mergeLocalCounts.py', '--fn_ISinGff', fn_ISinContig_all, '--fnOut_estimates', fn_contigEstimates,  '--fnOut_gff3_merged', fn_ISinContigs_merged] #  ' ' + additionalParams + ' > ' + fn_out] 
+def mergeLocalCounts(fn_ISinContig_all, fn_contigEstimates, fn_ISinContigs_merged, fn_out, additionalParams, thresholds, isolateId, fn_estimates_singleRow): 
+	command = ['python3', 'wais/scripts/mergeLocalCounts.py', '--fn_ISinGff', fn_ISinContig_all, '--fnOut_estimates', fn_contigEstimates,  '--fnOut_gff3_merged', fn_ISinContigs_merged, '--isolateId', isolateId, '--fnOut_estimates_singleRow', fn_estimates_singleRow] #  ' ' + additionalParams + ' > ' + fn_out] 
 
 	command = command + thresholds.getThresholds_asList('mergeLocalCounts')
 	command = command + additionalParams
@@ -391,18 +493,24 @@ def makeBlastDb(input, output, dbtype):
 def runTheCommand(command, printStr):
 	logging.info('START: ' + printStr)
 	logging.info('Command: ' + ' '.join(command))
+
+	# subprocess.check_call(command)
 	cmd = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	cmdOut, cmdErr = cmd.communicate()
 
-	cmdOut = cmdOut.decode("utf-8").replace('\\n', '\n')
-	logging.info(cmdOut) 
+	if cmdOut: 
+		cmdOut = cmdOut.decode("utf-8").replace('\\n', '\n')
+		logging.info(cmdOut) 
 
-	if cmdErr: 
+	if cmdErr or cmd.returncode != 0: 
 		logging.info('ERROR: ' + printStr)
 		logging.error(cmdErr)
+		sys.stderr.write('ERROR: ' + printStr)
+		sys.exit('See ' + str(logFile) + ' for details.')
 
 
-	logging.info('COMPLETE: ' + printStr)
+	logging.info('COMPLETE: ' + printStr + '\n\n')
+
 	
 def runTheCommand_redirectOutputToFile(command, printStr, fn_out):
 
@@ -410,18 +518,23 @@ def runTheCommand_redirectOutputToFile(command, printStr, fn_out):
 
 	logging.info('START: ' + printStr)
 	logging.info('Command: ' + ' '.join(command))
+
+	# subprocess.check_call(command)
 	cmd = subprocess.Popen(command, stdout=fh_out, stderr=subprocess.STDOUT)
 	cmdOut, cmdErr = cmd.communicate()
 
-	# cmdOut = cmdOut.decode("utf-8").replace('\\n', '\n')
-	# logging.info(cmdOut) 
+	if cmdOut: 
+		cmdOut = cmdOut.decode("utf-8").replace('\\n', '\n')
+		logging.info(cmdOut) 
 
-	if cmdErr: 
+	if cmdErr or cmd.returncode != 0: 
 		logging.info('ERROR: ' + printStr)
 		logging.error(cmdErr)
+		sys.stderr.write('ERROR: ' + printStr)
+		sys.exit('See ' + str(logFile) + ' for details.')
 
 
-	logging.info('COMPLETE: ' + printStr)
+	logging.info('COMPLETE: ' + printStr + '\n\n')
 
 def doBlastn_outfmt7(query, db, output):
 
@@ -507,13 +620,14 @@ def main():
 	parser.add_argument('--reads_1', required=True, nargs=1, help="Illumina reads forward file.")
 	parser.add_argument('--reads_2', required=True, nargs=1, help="Illumina reads reverse file.")
 	
-	# '--keepTmp'
+	parser.add_argument('--keepTmp', action='store_true', help='Keep the WaisTmp folder. Default=False.')
 	
 	## Reference 
 	parser.add_argument('--reference', nargs=1, help='A reference genome to map the insertion sequences identified in the assembly.', default=[None])
 
 	## Prokka 
-	parser.add_argument('--prokka', action='store_true', help='Run PROKKA to annotate genome and identify those distrupted by IS.')
+	# parser.add_argument('--prokka', action='store_true', help='Run PROKKA to annotate genome and identify those distrupted by IS.')
+	parser.add_argument('--referenceAnnotations', nargs=1, help='Annotations of genes, or other regions of interest, in the .gbk (genbank) format.', default=[None])
 
 	## Spades options
 	# --path_to_spades 
@@ -556,11 +670,13 @@ def main():
 	parser.add_argument('--th__ISinRefGenome_conglomerate__toMergePosFound', type=int, nargs=1, metavar='INT', help='To merge IS-positions found within \'th\'. Default=20.', default=[20])
 	parser.add_argument('--th__ISinRefGenome_conglomerate__finalAlignOverlap', type=int, nargs=1, metavar='INT', help='To merge IS-positions found within \'th\'. Default=0.', default=[0])
 
+	parser.add_argument('--th__appendEstimatedWrtRef__overlapTh', type=int, nargs=1, metavar='INT', help='Distance in basepairs to describe as single IS insertion. Default=20.', default=[20])
+
 	parser.usage = parser.format_help()
 	args = parser.parse_args()
 	
 	thresholds = Thresholds(args)
-	thresholds.printThresholds()
+	# thresholds.printThresholds()
 	# print (thresholds.getThresholds_asList('getFlankingSeqs'))
 
 	# print ("Printing the args:")
@@ -575,6 +691,16 @@ def main():
 	if args.assembly and len(args.assembly) > 0: 
 		checkIfFileExists(args.assembly[0])
 
+	if args.reference[0] != None: 
+		checkIfFileExists(args.reference[0])
+
+	if args.referenceAnnotations[0] != None and args.reference[0] == None:
+		sys.exit('\nError: you have provided a referenceAnnotations file, please remove this option or also provide a reference genome (option --reference).' + '\n') 
+		# checkIfFileExists(args.reference[0])
+
+	elif args.referenceAnnotations[0] != None and args.reference[0] != None: 
+		checkIfFileExists(args.referenceAnnotations[0])
+
 	if os.path.exists(args.outputDir[0]): 
 		sys.exit('\nError: the folder already exists ' + args.outputDir[0] + '\n')
 
@@ -584,7 +710,8 @@ def main():
 
 	## Checking input thresholds
 
-	# runWaIS(args.outputDir[0], args.runSpades, args.assembly, args.reads_1[0], args.reads_2[0], args.ISseqs[0], args.reference[0], args.prokka, thresholds)
+	runWaIS(args.outputDir[0], args.runSpades, args.assembly, args.reads_1[0], args.reads_2[0], args.ISseqs[0], args.reference[0], args.referenceAnnotations[0], thresholds, args.keepTmp)
+
 
 
 

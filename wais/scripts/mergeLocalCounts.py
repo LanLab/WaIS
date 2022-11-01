@@ -22,7 +22,7 @@ GFF3_VERSION = '##gff-version 3.1.26'
 
 
 ############################################ TOP_LVL
-def getTheFinalCountOfIS(fn_ISinGff, th_forMergingOverlaps, isIgnoreOrient, th_toCountAsEdge, isIgnoreIStype, fnOut_estimates, separator, fnOut_gff3_merged):
+def getTheFinalCountOfIS(fn_ISinGff, th_forMergingOverlaps, isIgnoreOrient, th_toCountAsEdge, isIgnoreIStype, fnOut_estimates, separator, fnOut_gff3_merged, isolateId, fnOut_estimates_singleRow):
 
 	(dict_allData, dict_seqReqInfo, dict_colors) = loadTheData(fn_ISinGff)
 
@@ -42,20 +42,21 @@ def getTheFinalCountOfIS(fn_ISinGff, th_forMergingOverlaps, isIgnoreOrient, th_t
 
 		(dict_estimates, dict_edgeOrMiddleAnnot) = doAnEdgeInnerCount(dict_reducedSet4, dict_seqReqInfo, th_toCountAsEdge)
 		printEstimateToFile(dict_estimates, fnOut_estimates)
+		printEstimateToFile_singleRow(dict_estimates, fnOut_estimates_singleRow, isolateId)
 		printGFF3_merged(dict_reducedSet4, separator, dict_edgeOrMiddleAnnot, fnOut_gff3_merged, dict_seqReqInfo, dict_colors)
 
-	
 	elif isIgnoreOrient == "True":
 		# print ('Calc a reducedSet3')
 		dict_reducedSet3 = reduceSet_3(dict_reducedSet2, th_forMergingOverlaps, separator)
 		(dict_estimates, dict_edgeOrMiddleAnnot) = doAnEdgeInnerCount(dict_reducedSet3, dict_seqReqInfo, th_toCountAsEdge)
 		printEstimateToFile(dict_estimates, fnOut_estimates)
+		printEstimateToFile_singleRow(dict_estimates, fnOut_estimates_singleRow, isolateId)
 		printGFF3_merged(dict_reducedSet3, separator, dict_edgeOrMiddleAnnot, fnOut_gff3_merged, dict_seqReqInfo, dict_colors)
-
 	
 	else:
 		(dict_estimates, dict_edgeOrMiddleAnnot) = doAnEdgeInnerCount(dict_reducedSet2, dict_seqReqInfo, th_toCountAsEdge)
 		printEstimateToFile(dict_estimates, fnOut_estimates)
+		printEstimateToFile_singleRow(dict_estimates, fnOut_estimates_singleRow, isolateId)
 		printGFF3_merged(dict_reducedSet2, separator, dict_edgeOrMiddleAnnot, fnOut_gff3_merged, dict_seqReqInfo, dict_colors)
 
 	
@@ -122,6 +123,8 @@ def printGFF3_merged(dict_reducedSet4, separator, dict_edgeOrMiddleAnnot, fnOut_
 		pass
 
 	# Print the data
+
+	uniqId = 0
 	for contigId in dict_reducedSet4:
 		for (start, end, ISid, orient) in dict_reducedSet4[contigId][SITES]:
 
@@ -148,17 +151,78 @@ def printGFF3_merged(dict_reducedSet4, separator, dict_edgeOrMiddleAnnot, fnOut_
 
 			fh_out.write(';color=' + dict_colors[ISid])
 
+			fh_out.write(';uniqId=' + str(uniqId))
+			uniqId = uniqId + 1
 
 			fh_out.write('\n')
 
 
 	fh_out.close() 
 
+def printEstimateToFile_singleRow(dict_eachIScount, fnOut_estimates, isolateId): 
+
+	list_IStypes = sorted(dict_eachIScount)
+
+
+	fh_out = open(fnOut_estimates, 'w+')
+
+	# Write the header
+	fh_out.write('\t')
+	fh_out.write('#Assembly') 
+
+	for IStype in list_IStypes:
+		for calculatedType in [EDGE, MIDDLE, ESTIMATE]:
+			fh_out.write('\t' + IStype + "_WaIS:" + calculatedType);
+
+	for calculatedType in [EDGE, MIDDLE, ESTIMATE]:
+		fh_out.write('\t' + "Total_WaIS:" + calculatedType);
+
+	# fh_out.write('\t')
+	# fh_out.write('Total')
+	fh_out.write('\n')
+	
+	# The output content 
+	fh_out.write(isolateId)
+	fh_out.write('\t')
+	for IStype in list_IStypes:
+		total_posInContig = 0
+		for calculatedType in [EDGE, MIDDLE]:
+			fh_out.write('\t')
+			if calculatedType in dict_eachIScount[IStype]:
+				fh_out.write(str(dict_eachIScount[IStype][calculatedType]))
+				if calculatedType == EDGE: 
+					total_posInContig = total_posInContig + (dict_eachIScount[IStype][calculatedType]/2)
+				elif calculatedType == MIDDLE: 
+					total_posInContig = total_posInContig + dict_eachIScount[IStype][calculatedType]
+			else:
+				fh_out.write('0')
+
+		fh_out.write('\t' + str(total_posInContig))
+
+	totalEdge = 0; totalMiddle = 0; totalEst = 0; 
+	for IStype in list_IStypes:
+
+		if EDGE in dict_eachIScount[IStype]:
+			totalEdge = totalEdge + dict_eachIScount[IStype][EDGE]
+
+		if MIDDLE in dict_eachIScount[IStype]: 
+			totalMiddle = totalMiddle + dict_eachIScount[IStype][MIDDLE]
+
+	totalEst = totalMiddle + (totalEdge/2)
+
+	fh_out.write('\t' + str(totalEdge))
+	fh_out.write('\t' + str(totalMiddle))
+	fh_out.write('\t' + str(totalEst))
+
+	fh_out.write('\n')
+
+	fh_out.close() 
 
 def printEstimateToFile(dict_eachIScount, fnOut_estimates):
 
 	fh_out = open(fnOut_estimates, 'w+')
 
+	fh_out.write('#################### Assemby' + "\n")
 	list_IStypes = sorted(dict_eachIScount)
 
 	fh_out.write('Tool')
@@ -841,15 +905,18 @@ def main():
 	parser.add_argument('--ignoreIStype', nargs=1, required=False, help='Values as True or False - to igore or-else check IStype, repsectively. Ignored IStypes are appended as IStype1:IStype2:..:IStypeN. This automatically sets isIgnoreOrient to "True". Default = False.', default=["False"])
 	parser.add_argument('--th_toCountAsEdge', nargs=1, required=False, default=[100], help='This distance from the (start+th) or (end-th) is checked to determine if insertion is counted as being an edge insertion or an insertion in the middle. Default = 100 (bps).')
 	parser.add_argument('--fnOut_estimates', nargs=1, required=True, help='File name to add the estimated number of IS to.')
+	parser.add_argument('--fnOut_estimates_singleRow', nargs=1, required=True, help='File name to add the estimated number of IS to.')
 	parser.add_argument('--fnOut_gff3_merged', nargs=1, required=True, help='File name to add the merged positions to.')
 	parser.add_argument('--separator', required=False, default=[':'], help='Separate unresolvable IS and orientations. Default is ":". Choose a separator that is not an alphabet in the IS identifier.')
+
+	parser.add_argument('--isolateId', nargs=1, required=True, help='Identifier of currently isolate.')
 
 
 
 	args = parser.parse_args()
 	args.th_forMergingOverlaps[0] = int(args.th_forMergingOverlaps[0])
 
-	getTheFinalCountOfIS(args.fn_ISinGff[0], int(args.th_forMergingOverlaps[0]), args.ignoreOrient[0], int(args.th_toCountAsEdge[0]), args.ignoreIStype[0], args.fnOut_estimates[0], args.separator[0], args.fnOut_gff3_merged[0])
+	getTheFinalCountOfIS(args.fn_ISinGff[0], int(args.th_forMergingOverlaps[0]), args.ignoreOrient[0], int(args.th_toCountAsEdge[0]), args.ignoreIStype[0], args.fnOut_estimates[0], args.separator[0], args.fnOut_gff3_merged[0], args.isolateId[0], args.fnOut_estimates_singleRow[0])
 
 if __name__=='__main__':
 	main()

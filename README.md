@@ -35,7 +35,10 @@ python3 wais.py --help
 python3 wais/wais.py --outputDir SRR9988840 --ISseqs Example/IS_seqs_found_in_BP.fasta --reads_1 Example/SRR9988840_1.fastq.gz --reads_2 Example/SRR9988840_2.fastq.gz --assembly Example/contigs.fasta 
 
 # Alternatively, also run spades with WaIS. 
+python3 ... 
 
+# Map the identified insertions to a reference genome.
+python3 ... 
 
 ```
 
