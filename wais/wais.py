@@ -287,9 +287,9 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 		if fn_referenceAnnotations != None: 
 			insertionsWrtRefAnnotations(fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_merged, fn_allInterrupAnnots_merged, fn_onlyInterupAnnots_merged) 
 			
-			insertionsWrtRefAnnotations(fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_merged, fn_allInterrupAnnots_ignoreOrient, fn_onlyInterupAnnots_ignoreOrient) 
+			insertionsWrtRefAnnotations(fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_ignoreOrient, fn_allInterrupAnnots_ignoreOrient, fn_onlyInterupAnnots_ignoreOrient) 
 		
-			insertionsWrtRefAnnotations(fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_merged, fn_allInterrupAnnots_ignoreIStype, fn_onlyInterupAnnots_ignoreIStype) 
+			insertionsWrtRefAnnotations(fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_ignoreIStype, fn_allInterrupAnnots_ignoreIStype, fn_onlyInterupAnnots_ignoreIStype) 
 		
 		# insertionsWrtRefAnnotations()
 

@@ -568,9 +568,10 @@ def load_ISannot(fn_ISannotation, dict_refSeq):
 		for record in GFF.parse(fh, base_dict=dict_refSeq): 
 			for feature in record.features: 
 
-				loc_start = int(feature.location.start)
+				loc_start = int(feature.location.start) + 1
 				loc_end = int(feature.location.end) 
 
+				print (str(loc_start)  + ':' + str(loc_end))
 				# print ('Strand: ' + str(feature.location.strand))
 				if feature.location.strand == 1:
 					strand = '+' 
@@ -606,9 +607,10 @@ def load_refAnnot(fn_reference, fn_refAnnotation, allowedFeatTypes):
 				if feature.type in allowedFeatTypes: 
 					# print (str(feature.location.start) + ' ' + str(feature.location.end) + ' ' + str(feature.location.strand) + ' ' + feature.type) 
 
-					loc_start = int(feature.location.start)
+					loc_start = int(feature.location.start) + 1
 					loc_end = int(feature.location.end) 
 
+					# print(str(loc_start) + ':' + str(loc_end)) 
 					strand = '+' if feature.location.strand == 1 else '-'
 					if record.id not in dict_refFeatures: 
 						dict_refFeatures[record.id] = dict() 
