@@ -32,7 +32,6 @@ def insertionsWrtRefAnnotations(fn_reference, fn_refAnnotation, fn_ISannotation,
 
 			print (refId + '\t' + str(refInfo) + '\t' + str(dict_refAnnots_interrupted[refId][refInfo]))
 	"""
-
 	
 	if th_surroundDist > 0: 
 		# Calc effective distance to check
@@ -117,6 +116,8 @@ def printFinalOutput_onlyInterrupted(fn_outfile_all, isLeftRight, fn_outfile_onl
 			arr = line.split('\t')
 
 			arr_refLoc = arr[Col_refLoc].split(':')
+
+			# print ('Interrupted by: ' + arr[Col_interruptedBy])
 
 			if arr[Col_isInterrupted] == 'True': 
 				printAnInsertionLine(DIRECT, fh_out, arr[Col_refId], arr[Col_refLoc], arr[Col_refAnnotDetails], arr[Col_interruptedBy], '')
@@ -356,20 +357,29 @@ def getISinsertStrToPrint(dict_ISannots, list_ISloc, refStart, refEnd, refOrient
 				if refOrient == '+': 
 					# Insert position
 					insertPosition = 0
-					if (ISstart >= refStart):
+					if (ISstart >= refStart and ISstart <= refEnd):
 						insertPosition = ISstart - refStart + 1 
+						printStr = printStr + ":isNew=" + list_isNew[idx_IStype] + ":insertPos=" + str(insertPosition) ## For debugging #  + ':_1'
+					elif (ISend >= refStart and ISend <= refEnd): 
+						insertPosition = ISend - refStart + 1 
+						printStr = printStr + ":isNew=" + list_isNew[idx_IStype] + ":insertPos=" + str(insertPosition) # + ':_2'
 					else: 
 						insertPosition = ISstart - refStart 
-					printStr = printStr + ":isNew=" + list_isNew[idx_IStype] + ":insertPos=" + str(insertPosition)
+						printStr = printStr + ":isNew=" + list_isNew[idx_IStype] + ":insertPos=" + str(insertPosition) # + ':_3'
+						
 
 
 				elif refOrient == '-': 
 					insertPosition = 0
-					if (ISend <= refEnd): 
+					if (ISend <= refEnd and ISend >= refStart): 
 						insertPosition = refEnd - ISend + 1
+						printStr = printStr + ":isNew=" + list_isNew[idx_IStype] + ":insertPos=" + str(insertPosition) # + ':_4'
+					elif (ISstart >= refStart and ISstart <= refEnd): 
+						insertPosition = refEnd - ISstart + 1
+						printStr = printStr + ":isNew=" + list_isNew[idx_IStype] + ":insertPos=" + str(insertPosition) # + ':_5'
 					else: 
 						insertPosition = refEnd - ISend
-					printStr = printStr + ":isNew=" + list_isNew[idx_IStype] + ":insertPos=" + str(insertPosition)
+						printStr = printStr + ":isNew=" + list_isNew[idx_IStype] + ":insertPos=" + str(insertPosition) # + ':_6'
 				
 				 
 

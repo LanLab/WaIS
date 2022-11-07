@@ -77,7 +77,12 @@ def calcPosToRef(fn_contigToRef, fn_IStoContig, th_alignDiff_IStoContig, fn_gff_
 			printGff3Merged(dict_mergedIgnoreOrient, fn_out, dict_direct, dict_color, list_seqRegions, True, False, th_directOverlap)
 		else: 
 			print('Printing for --merged')
-			printGff3Merged(dict_mergedIStoRef, fn_out, dict_direct, dict_color, list_seqRegions, False, False, th_directOverlap)
+			dict_ISidsInContigs_counts = printGff3Merged(dict_mergedIStoRef, fn_out, dict_direct, dict_color, list_seqRegions, False, False, th_directOverlap)
+
+			print ('dict_ISidsInContigs_counts is .... ')
+			for uniqId in dict_ISidsInContigs_counts: 
+				print (uniqId + '\t' + str(dict_ISidsInContigs_counts[uniqId]))
+			# print (dict_ISidsInContigs_counts)
 			# getISnotMappedToRef(list_allContigs, dict_contigToRef_alignLen, dict_IStoContig, list_contigsWithComplIS)
 
 			# calcAndPrintISnotMappedToRef(dict_ISidsInContigs_counts, dict_IStoContig)
