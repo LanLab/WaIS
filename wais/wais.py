@@ -78,7 +78,7 @@ class Thresholds:
 
 
 #################################### TOP_LVL 
-def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseReads, fn_ISseqs, fn_reference, fn_referenceAnnotations, thresholds, keepTmp): 
+def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseReads, fn_ISseqs, fn_reference, fn_referenceAnnotations, thresholds, keepTmp, path_to_script): 
 
 	(dir_out_wais, dir_out_waisTmp, dir_out_waisFinal, dir_out_spades) = createOutputDirStruct(dir_out, isRunSpades)
 
@@ -199,11 +199,11 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	doBlastn_outfmt7(fn_reads2_fa, fn_blastdb_ISseqs, fn_2_to_IS_blastRes)
 	
 	# 6. Get flanking seqs. (i.e. segment of read that does not align to ISseq)
-	getFlankingSeqs(fn_1_to_IS_blastRes, fn_reads1_fa, fn_flanks_1, thresholds)
-	getFlankingSeqs(fn_2_to_IS_blastRes, fn_reads2_fa, fn_flanks_2, thresholds)
+	getFlankingSeqs(path_to_script, fn_1_to_IS_blastRes, fn_reads1_fa, fn_flanks_1, thresholds)
+	getFlankingSeqs(path_to_script, fn_2_to_IS_blastRes, fn_reads2_fa, fn_flanks_2, thresholds)
 	
 	# 7. Refine flanks - remove pairs with complete alignment
-	rmFlanks_whenOneDirFullAlign_v2(fn_1_to_IS_blastRes, fn_2_to_IS_blastRes, fn_flanks_1, fn_flanks_2, fn_flanks_1_filtered, fn_flanks_2_filtered, fn_out_rmFlanks, dir_out_waisTmp, thresholds)
+	rmFlanks_whenOneDirFullAlign_v2(path_to_script, fn_1_to_IS_blastRes, fn_2_to_IS_blastRes, fn_flanks_1, fn_flanks_2, fn_flanks_1_filtered, fn_flanks_2_filtered, fn_out_rmFlanks, dir_out_waisTmp, thresholds)
 
 	
 	# 8. Blast filtered_flanks to contigs 
@@ -211,7 +211,7 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	doBlastn_outfmt7(fn_flanks_2_filtered, fn_blastdb_assembly, fn_flanks2Filtered_to_contigs)
 
 	# 9. Extract sequences from the onlyIds.
-	loadOnlyAndPntFasta(fn_only1Ids_moved, fn_only2Ids_moved, fn_reads1_fa, fn_reads2_fa, fn_only1Seqs, fn_only2Seqs, fn_out_loadOnlyAndPntFasta)
+	loadOnlyAndPntFasta(path_to_script, fn_only1Ids_moved, fn_only2Ids_moved, fn_reads1_fa, fn_reads2_fa, fn_only1Seqs, fn_only2Seqs, fn_out_loadOnlyAndPntFasta)
 
 	# 10. Blast 
 	doBlastn_outfmt7(fn_only1Seqs, fn_blastdb_assembly, fn_only1ToContigs_blastRes)
@@ -219,12 +219,12 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 
 
 	# 11. summarizeOnlyToContig 
-	summarizeOnlyToContig(fn_only1ToContigs_blastRes, fn_flanks2Filtered_to_contigs, fn_only1AndFlanks2, thresholds)
-	summarizeOnlyToContig(fn_only2ToContigs_blastRes, fn_flanks1Filtered_to_contigs, fn_only2AndFlanks1, thresholds)
+	summarizeOnlyToContig(path_to_script, fn_only1ToContigs_blastRes, fn_flanks2Filtered_to_contigs, fn_only1AndFlanks2, thresholds)
+	summarizeOnlyToContig(path_to_script, fn_only2ToContigs_blastRes, fn_flanks1Filtered_to_contigs, fn_only2AndFlanks1, thresholds)
 
 
 	# 12. rmFlanks_whenPairMismatchContig
-	rmFlanks_whenPairMismatchContig(fn_only1AndFlanks2, fn_only2AndFlanks1, fn_flanks_1_filtered, fn_flanks_2_filtered, fn_flanks_1_filtered_B, fn_flanks_2_filtered_B) 
+	rmFlanks_whenPairMismatchContig(path_to_script, fn_only1AndFlanks2, fn_only2AndFlanks1, fn_flanks_1_filtered, fn_flanks_2_filtered, fn_flanks_1_filtered_B, fn_flanks_2_filtered_B) 
 
 	
 	# 13. Blast
@@ -232,17 +232,17 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	doBlastn_outfmt7(fn_flanks_2_filtered_B, fn_blastdb_assembly, fn_flanks2FilteredB_to_contigs)
 
 	# 14. calcInContig_posISOrient
-	calcInContig_posISOrient(fn_blastRes_IStoContigs, fn_flanks1FilteredB_to_contigs, fn_flanks2FilteredB_to_contigs,  fn_ISinContigs_all, fn_out_calcInContig_posISOrient, thresholds) 
+	calcInContig_posISOrient(path_to_script, fn_blastRes_IStoContigs, fn_flanks1FilteredB_to_contigs, fn_flanks2FilteredB_to_contigs,  fn_ISinContigs_all, fn_out_calcInContig_posISOrient, thresholds) 
 
 	
 	# 15a. In Contigs: mergeLocalCounts (merge-overlaps)
-	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_merged, fn_ISinContigs_merged, fn_out_mergeLocalCounts, [], thresholds, dir_out, fn_estimates_singleRow_merged)
+	mergeLocalCounts(path_to_script, fn_ISinContigs_all, fn_contigEstimates_merged, fn_ISinContigs_merged, fn_out_mergeLocalCounts, [], thresholds, dir_out, fn_estimates_singleRow_merged)
 
 	# 15b. In Contigs: mergeLocalCounts (merge, ignoreOrient,)
-	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreOrient, fn_ISinContigs_ignoreOrient, fn_out_mergeLocalCounts, ['--ignoreOrient', 'True'], thresholds, dir_out, fn_estimates_singleRow_ignoreOrient)
+	mergeLocalCounts(path_to_script, fn_ISinContigs_all, fn_contigEstimates_ignoreOrient, fn_ISinContigs_ignoreOrient, fn_out_mergeLocalCounts, ['--ignoreOrient', 'True'], thresholds, dir_out, fn_estimates_singleRow_ignoreOrient)
 
 	# 15c. In Contigs: mergeLocalCounts (merge, ignoreOrient, ignoreIStype)
-	mergeLocalCounts(fn_ISinContigs_all, fn_contigEstimates_ignoreIStype, fn_ISinContigs_ignoreIStype, fn_out_mergeLocalCounts, ['--ignoreOrient', 'True', '--ignoreIStype', 'True'], thresholds, dir_out, fn_estimates_singleRow_ignoreIStype)
+	mergeLocalCounts(path_to_script, fn_ISinContigs_all, fn_contigEstimates_ignoreIStype, fn_ISinContigs_ignoreIStype, fn_out_mergeLocalCounts, ['--ignoreOrient', 'True', '--ignoreIStype', 'True'], thresholds, dir_out, fn_estimates_singleRow_ignoreIStype)
 
 	
 	## 16. If reference 
@@ -253,43 +253,43 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 
 		# 2. Blast IS to refs, and convert blastRes to gff3 with different levels of merges (and write to estimates as a 'golden' count).
 		doBlastn_outfmt7(fn_ISseqs, fn_blastdb_reference, fn_ISinRef_blastRes) 
-		convertBlastToGff_IStoRef(fn_ISinRef_blastRes, fn_contigEstimates_merged, fn_ISinRef_gff, fn_out_convertBlastToGff, [], fn_estimates_singleRow_merged) # converted (with merged)
-		convertBlastToGff_IStoRef(fn_ISinRef_blastRes, fn_contigEstimates_ignoreOrient, fn_ISinRef_gff,fn_out_convertBlastToGff, ['--ignoreOrient', 'True'], fn_estimates_singleRow_ignoreOrient) # converted (with ignoreOrient)
-		convertBlastToGff_IStoRef(fn_ISinRef_blastRes, fn_contigEstimates_ignoreIStype, fn_ISinRef_gff, fn_out_convertBlastToGff, ['--ignoreIStype', 'True'], fn_estimates_singleRow_ignoreIStype) # converted (with ignoreIStype) 
+		convertBlastToGff_IStoRef(path_to_script, fn_ISinRef_blastRes, fn_contigEstimates_merged, fn_ISinRef_gff, fn_out_convertBlastToGff, [], fn_estimates_singleRow_merged) # converted (with merged)
+		convertBlastToGff_IStoRef(path_to_script, fn_ISinRef_blastRes, fn_contigEstimates_ignoreOrient, fn_ISinRef_gff,fn_out_convertBlastToGff, ['--ignoreOrient', 'True'], fn_estimates_singleRow_ignoreOrient) # converted (with ignoreOrient)
+		convertBlastToGff_IStoRef(path_to_script, fn_ISinRef_blastRes, fn_contigEstimates_ignoreIStype, fn_ISinRef_gff, fn_out_convertBlastToGff, ['--ignoreIStype', 'True'], fn_estimates_singleRow_ignoreIStype) # converted (with ignoreIStype) 
 
 		# 3. Blast contigs to ref.
 		doBlastn_outfmt7(fn_assembly, fn_blastdb_reference, fn_contigsToRef_blastRes) # blast contigs to refs
 
 		# 4. (not used)
-		convertBlastToGff(fn_contigsToRef_blastRes, fn_contigsToRef_gff, fn_out_convertBlastToGff) 
+		convertBlastToGff(path_to_script, fn_contigsToRef_blastRes, fn_contigsToRef_gff, fn_out_convertBlastToGff) 
 		# addRefCountsToEstimatesFile() (Script ready) (write to the estimates file)
 
 		# 5. Calculate IS to Contigs (using mappings from IStoContigsToRef_blastResults )
 		# calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_ISinRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_merged, fn_IStoRef_gff_all, fn_out, [], thresholds) 
 
 		## TODO: Redirect outputs from the following 3 to /dev/null (and delete).
-		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_ISinRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_merged, fn_IStoRef_gff_merged, fn_out, ['--isMerged', 'True'], thresholds) 
-		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_ISinRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_ignoreOrient, fn_IStoRef_gff_ignoreOrient, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True'], thresholds) 
-		calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_ISinRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_ignoreIStype, fn_IStoRef_gff_ignoreIStype, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True', '--ignoreIStype', 'True'], thresholds) 
+		calcInRef_posISorient_v2(path_to_script, fn_blastRes_IStoContigs, fn_ISinRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_merged, fn_IStoRef_gff_merged, fn_out, ['--isMerged', 'True'], thresholds) 
+		calcInRef_posISorient_v2(path_to_script, fn_blastRes_IStoContigs, fn_ISinRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_ignoreOrient, fn_IStoRef_gff_ignoreOrient, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True'], thresholds) 
+		calcInRef_posISorient_v2(path_to_script, fn_blastRes_IStoContigs, fn_ISinRef_blastRes, fn_contigsToRef_blastRes, fn_ISinContigs_ignoreIStype, fn_IStoRef_gff_ignoreIStype, fn_out, ['--isMerged', 'True', '--ignoreOrient', 'True', '--ignoreIStype', 'True'], thresholds) 
 
 		# 6. Append IS in ref. to estimates.txt files. 
-		appendEstimatedWrtRef(fn_IStoRef_gff_merged, fn_ISinContigs_merged, fn_contigEstimates_merged, fn_estimates_singleRow_merged, fn_out)
-		appendEstimatedWrtRef(fn_IStoRef_gff_ignoreOrient, fn_ISinContigs_ignoreOrient, fn_contigEstimates_ignoreOrient, fn_estimates_singleRow_ignoreOrient, fn_out)
-		appendEstimatedWrtRef(fn_IStoRef_gff_ignoreIStype, fn_ISinContigs_ignoreIStype, fn_contigEstimates_ignoreIStype, fn_estimates_singleRow_ignoreIStype, fn_out)
+		appendEstimatedWrtRef(path_to_script, fn_IStoRef_gff_merged, fn_ISinContigs_merged, fn_contigEstimates_merged, fn_estimates_singleRow_merged, fn_out)
+		appendEstimatedWrtRef(path_to_script, fn_IStoRef_gff_ignoreOrient, fn_ISinContigs_ignoreOrient, fn_contigEstimates_ignoreOrient, fn_estimates_singleRow_ignoreOrient, fn_out)
+		appendEstimatedWrtRef(path_to_script, fn_IStoRef_gff_ignoreIStype, fn_ISinContigs_ignoreIStype, fn_contigEstimates_ignoreIStype, fn_estimates_singleRow_ignoreIStype, fn_out)
 		
 		# 7. Generate a presence absence table with regards to the ref-IS (additionally those inserted at the new positions in the ref-genome). 
-		genPresAbsTblWrtRef(fn_ISinRef_blastRes, fn_IStoRef_gff_merged, fn_presAbs_merged, dir_out)
-		genPresAbsTblWrtRef(fn_ISinRef_blastRes, fn_IStoRef_gff_ignoreOrient, fn_presAbs_ignoreOrient, dir_out)
-		genPresAbsTblWrtRef(fn_ISinRef_blastRes, fn_IStoRef_gff_ignoreIStype, fn_presAbs_ignoreIStype, dir_out)
+		genPresAbsTblWrtRef(path_to_script, fn_ISinRef_blastRes, fn_IStoRef_gff_merged, fn_presAbs_merged, dir_out)
+		genPresAbsTblWrtRef(path_to_script, fn_ISinRef_blastRes, fn_IStoRef_gff_ignoreOrient, fn_presAbs_ignoreOrient, dir_out)
+		genPresAbsTblWrtRef(path_to_script, fn_ISinRef_blastRes, fn_IStoRef_gff_ignoreIStype, fn_presAbs_ignoreIStype, dir_out)
 
 
 		# 7. If user provides ref annotations: determine if those interrupted or not. 
 		if fn_referenceAnnotations != None: 
-			insertionsWrtRefAnnotations(fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_merged, fn_allInterrupAnnots_merged, fn_onlyInterupAnnots_merged) 
+			insertionsWrtRefAnnotations(path_to_script, fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_merged, fn_allInterrupAnnots_merged, fn_onlyInterupAnnots_merged) 
 			
-			insertionsWrtRefAnnotations(fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_ignoreOrient, fn_allInterrupAnnots_ignoreOrient, fn_onlyInterupAnnots_ignoreOrient) 
+			insertionsWrtRefAnnotations(path_to_script, fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_ignoreOrient, fn_allInterrupAnnots_ignoreOrient, fn_onlyInterupAnnots_ignoreOrient) 
 		
-			insertionsWrtRefAnnotations(fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_ignoreIStype, fn_allInterrupAnnots_ignoreIStype, fn_onlyInterupAnnots_ignoreIStype) 
+			insertionsWrtRefAnnotations(path_to_script, fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_ignoreIStype, fn_allInterrupAnnots_ignoreIStype, fn_onlyInterupAnnots_ignoreIStype) 
 		
 		# insertionsWrtRefAnnotations()
 
@@ -340,8 +340,8 @@ def runProkka(fn_input, dir_output, str_runningOn):
 	return fn_prokka_out[0]
 
 #################################### AUX - Calling WaIS scripts
-def insertionsWrtRefAnnotations(fn_reference, fn_refAnnotations, fn_ISannotations, fn_allAnnots, fn_onlyInterupAnnots):
-	command = ["python3", "wais/scripts/insertionsWrtRefAnnotations.py", "--reference", fn_reference, "--ref_annotation", fn_refAnnotations, '--IS_annotation', fn_ISannotations, '--outfile', fn_allAnnots, '--outfile_onlyInterrupted', fn_onlyInterupAnnots]
+def insertionsWrtRefAnnotations(path_to_script, fn_reference, fn_refAnnotations, fn_ISannotations, fn_allAnnots, fn_onlyInterupAnnots):
+	command = ["python3", path_to_script + "/scripts/insertionsWrtRefAnnotations.py", "--reference", fn_reference, "--ref_annotation", fn_refAnnotations, '--IS_annotation', fn_ISannotations, '--outfile', fn_allAnnots, '--outfile_onlyInterrupted', fn_onlyInterupAnnots]
 
 	# command = command + thresholds.getThresholds_asList('ISinRefGenome_conglomerate')
 	# command = command + params 
@@ -349,8 +349,8 @@ def insertionsWrtRefAnnotations(fn_reference, fn_refAnnotations, fn_ISannotation
 	runTheCommand(command, 'Mapping identified IS positions to reference genome.') 
 	
 
-def appendEstimatedWrtRef(fn_ISmappedToRef, fn_ISinContigs, fn_estimates, fn_estimates_singleRow, fn_out): 
-	command = ["python3", "wais/scripts/appendEstimatedWrtRef_v2.py", "--IStoRef", fn_ISmappedToRef, "--fn_estimates", fn_estimates, '--fn_estimates_singleRow', fn_estimates_singleRow, '--ISinContigs', fn_ISinContigs]
+def appendEstimatedWrtRef(path_to_script, fn_ISmappedToRef, fn_ISinContigs, fn_estimates, fn_estimates_singleRow, fn_out): 
+	command = ["python3", path_to_script + "/scripts/appendEstimatedWrtRef_v2.py", "--IStoRef", fn_ISmappedToRef, "--fn_estimates", fn_estimates, '--fn_estimates_singleRow', fn_estimates_singleRow, '--ISinContigs', fn_ISinContigs]
 
 	# command = command + thresholds.getThresholds_asList('appendEstimatedWrtRef')
 	# command = command + params 
@@ -369,15 +369,15 @@ def ISinRefGenome_conglomerate(fn_IStoRef_blastRes, fn_IStoRef_gff, fn_res, thre
 	# subprocess.run(command, shell=True)
 
 
-def genPresAbsTblWrtRef(fn_ISinRef_blastRes, fn_IStoRef_gff, fn_presenceAbsence, isolateId):
-	command = ["python3", "wais/scripts/genPresAbsTblWrtRef.py", "--IStoRef_blast", fn_ISinRef_blastRes, "--IStoRef_mapped", fn_IStoRef_gff, "--isolateId", isolateId] #  + " > " + fn_presenceAbsence]
+def genPresAbsTblWrtRef(path_to_script, fn_ISinRef_blastRes, fn_IStoRef_gff, fn_presenceAbsence, isolateId):
+	command = ["python3", path_to_script + "/scripts/genPresAbsTblWrtRef.py", "--IStoRef_blast", fn_ISinRef_blastRes, "--IStoRef_mapped", fn_IStoRef_gff, "--isolateId", isolateId] #  + " > " + fn_presenceAbsence]
 
 	runTheCommand_redirectOutputToFile(command, 'Generating IS site presence, or absence, for an isolate w.r.t. reference.', fn_presenceAbsence)
 
 	# subprocess.run(command, shell=True) 
 
-def calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_all_gff, fn_out, params, thresholds): 
-	command = ['python3', 'wais/scripts/calcInRef_posISorient_v2.py', '--IStoContig', fn_blastRes_IStoContigs, '--directIStoRef', fn_IStoRef_blastRes, '--contigToRef', fn_contigToRef_blastRes, '--IS_annotation', fn_ISinContigs_all, '--fn_out', fn_IStoRef_all_gff] # ' ' + params + ' > ' + fn_out]
+def calcInRef_posISorient_v2(path_to_script, fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_contigToRef_blastRes, fn_ISinContigs_all, fn_IStoRef_all_gff, fn_out, params, thresholds): 
+	command = ['python3', path_to_script + '/scripts/calcInRef_posISorient_v2.py', '--IStoContig', fn_blastRes_IStoContigs, '--directIStoRef', fn_IStoRef_blastRes, '--contigToRef', fn_contigToRef_blastRes, '--IS_annotation', fn_ISinContigs_all, '--fn_out', fn_IStoRef_all_gff] # ' ' + params + ' > ' + fn_out]
 
 	command = command + thresholds.getThresholds_asList('calcInRef_posISorient_v2')
 	command = command + params
@@ -385,23 +385,23 @@ def calcInRef_posISorient_v2(fn_blastRes_IStoContigs, fn_IStoRef_blastRes, fn_co
 	runTheCommand_redirectOutputToFile(command, 'Mapping identified IS positions to reference genome.', fn_out) 
 	# subprocess.run(command, shell=True)
 	
-def convertBlastToGff_IStoRef(fn_IStoRef_blastRes, fn_estimates, fn_IStoRef_gff, fn_out_convertBlastToGff, additionalArgs, fn_estimates_singleRow): 
-	command = ['python3', 'wais/scripts/convertBlastToGff_ref.py', '--blastRes', fn_IStoRef_blastRes, '--fn_estimates', fn_estimates, '--out', fn_IStoRef_gff, '--fn_estimates_singleRow', fn_estimates_singleRow]
+def convertBlastToGff_IStoRef(path_to_script, fn_IStoRef_blastRes, fn_estimates, fn_IStoRef_gff, fn_out_convertBlastToGff, additionalArgs, fn_estimates_singleRow): 
+	command = ['python3', path_to_script + '/scripts/convertBlastToGff_ref.py', '--blastRes', fn_IStoRef_blastRes, '--fn_estimates', fn_estimates, '--out', fn_IStoRef_gff, '--fn_estimates_singleRow', fn_estimates_singleRow]
 
 	command = command + additionalArgs
 
 	runTheCommand_redirectOutputToFile(command, 'Converting contigs-to-ref BLAST results to gff3.', fn_out_convertBlastToGff)
 	 
 
-def convertBlastToGff(fn_contigsToRef_blastRes, fn_contigsToRef_gff, fn_out_convertBlastToGff):
-	command = ['python3', 'wais/scripts/convertBlastToGff.py', '--blastRes', fn_contigsToRef_blastRes, '--out', fn_contigsToRef_gff] # , ' > ' + fn_out_convertBlastToGff]
+def convertBlastToGff(path_to_script, fn_contigsToRef_blastRes, fn_contigsToRef_gff, fn_out_convertBlastToGff):
+	command = ['python3', path_to_script + '/scripts/convertBlastToGff.py', '--blastRes', fn_contigsToRef_blastRes, '--out', fn_contigsToRef_gff] # , ' > ' + fn_out_convertBlastToGff]
 
 	runTheCommand_redirectOutputToFile(command, 'Converting contigs-to-ref BLAST results to gff3.', fn_out_convertBlastToGff)
 
 	# subprocess.run(command, shell=True)
 
-def mergeLocalCounts(fn_ISinContig_all, fn_contigEstimates, fn_ISinContigs_merged, fn_out, additionalParams, thresholds, isolateId, fn_estimates_singleRow): 
-	command = ['python3', 'wais/scripts/mergeLocalCounts.py', '--fn_ISinGff', fn_ISinContig_all, '--fnOut_estimates', fn_contigEstimates,  '--fnOut_gff3_merged', fn_ISinContigs_merged, '--isolateId', isolateId, '--fnOut_estimates_singleRow', fn_estimates_singleRow] #  ' ' + additionalParams + ' > ' + fn_out] 
+def mergeLocalCounts(path_to_script, fn_ISinContig_all, fn_contigEstimates, fn_ISinContigs_merged, fn_out, additionalParams, thresholds, isolateId, fn_estimates_singleRow): 
+	command = ['python3', path_to_script + '/scripts/mergeLocalCounts.py', '--fn_ISinGff', fn_ISinContig_all, '--fnOut_estimates', fn_contigEstimates,  '--fnOut_gff3_merged', fn_ISinContigs_merged, '--isolateId', isolateId, '--fnOut_estimates_singleRow', fn_estimates_singleRow] #  ' ' + additionalParams + ' > ' + fn_out] 
 
 	command = command + thresholds.getThresholds_asList('mergeLocalCounts')
 	command = command + additionalParams
@@ -411,22 +411,22 @@ def mergeLocalCounts(fn_ISinContig_all, fn_contigEstimates, fn_ISinContigs_merge
 
 	# subprocess.run(command, shell=True)
 
-def calcInContig_posISOrient(fn_blastRes_IStoContigs, fn_flanks1FilteredB, fn_flanks2FilteredB, fn_ISinContig_gff, fn_out, thresholds): 
-	command = ['python3', 'wais/scripts/calcInContig_posISOrient.py', '--direct', fn_blastRes_IStoContigs, '--flanks1ToContigs', fn_flanks1FilteredB, '--flanks2ToContigs', fn_flanks2FilteredB, '--output_gff', fn_ISinContig_gff] #, ' > ' + fn_out]
+def calcInContig_posISOrient(path_to_script ,fn_blastRes_IStoContigs, fn_flanks1FilteredB, fn_flanks2FilteredB, fn_ISinContig_gff, fn_out, thresholds): 
+	command = ['python3', path_to_script + '/scripts/calcInContig_posISOrient.py', '--direct', fn_blastRes_IStoContigs, '--flanks1ToContigs', fn_flanks1FilteredB, '--flanks2ToContigs', fn_flanks2FilteredB, '--output_gff', fn_ISinContig_gff] #, ' > ' + fn_out]
 
 	command = command + thresholds.getThresholds_asList('calcInContig_posISOrient')
 	# subprocess.run(command, shell=True) 
 	runTheCommand(command, 'Calculating IS insertions in contigs.')
 
-def rmFlanks_whenPairMismatchContig(fn_only1AndFlanks2, fn_only2AndFlanks1, fn_flanks1Filtered, fn_flanks2Filtered, fn_flanks1FilteredB, fn_flanks2FilteredB):
+def rmFlanks_whenPairMismatchContig(path_to_script, fn_only1AndFlanks2, fn_only2AndFlanks1, fn_flanks1Filtered, fn_flanks2Filtered, fn_flanks1FilteredB, fn_flanks2FilteredB):
 
-	command = ['python3', 'wais/scripts/rmFlanks_whenPairMismatchContig.py', '--only2AndFlanks1', fn_only2AndFlanks1, '--only1AndFlanks2', fn_only1AndFlanks2, '--flanks1', fn_flanks1Filtered, '--flanks2', fn_flanks2Filtered, '--out_flanks1', fn_flanks1FilteredB, '--out_flanks2', fn_flanks2FilteredB]
+	command = ['python3', path_to_script + '/scripts/rmFlanks_whenPairMismatchContig.py', '--only2AndFlanks1', fn_only2AndFlanks1, '--only1AndFlanks2', fn_only1AndFlanks2, '--flanks1', fn_flanks1Filtered, '--flanks2', fn_flanks2Filtered, '--out_flanks1', fn_flanks1FilteredB, '--out_flanks2', fn_flanks2FilteredB]
 
 	runTheCommand(command, 'Removing pairs when mismatched IS reads.')
 
 
-def summarizeOnlyToContig(fn_only1ToContigs_blastRes, fn_flanks2Filtered_to_contigs, fn_only1AndFlanks2, thresholds):
-	command = ["python3", "wais/scripts/summarizeOnlyToContig.py", "--only", fn_only1ToContigs_blastRes, "--flanks", fn_flanks2Filtered_to_contigs] #, " > " + fn_only1AndFlanks2]
+def summarizeOnlyToContig(path_to_script, fn_only1ToContigs_blastRes, fn_flanks2Filtered_to_contigs, fn_only1AndFlanks2, thresholds):
+	command = ["python3", path_to_script + "/scripts/summarizeOnlyToContig.py", "--only", fn_only1ToContigs_blastRes, "--flanks", fn_flanks2Filtered_to_contigs] #, " > " + fn_only1AndFlanks2]
 
 	command = command + thresholds.getThresholds_asList('summarizeOnlyToContig')
 	
@@ -435,16 +435,16 @@ def summarizeOnlyToContig(fn_only1ToContigs_blastRes, fn_flanks2Filtered_to_cont
 	# subprocess.run(command, shell=True) 
 
 
-def loadOnlyAndPntFasta(fn_only1, fn_only2, fn_reads1, fn_reads2, fn_out_reads1, fn_out_reads2, fn_out):
+def loadOnlyAndPntFasta(path_to_script, fn_only1, fn_only2, fn_reads1, fn_reads2, fn_out_reads1, fn_out_reads2, fn_out):
 
-	command = ['python3', 'wais/scripts/loadOnlyAndPntFasta.py', '--only1', fn_only1, '--only2', fn_only2, '--reads1', fn_reads1, '--reads2', fn_reads2, '--outfile_reads1', fn_out_reads1, '--outfile_reads2', fn_out_reads2] # , ' > ' + fn_out]
+	command = ['python3', path_to_script + '/scripts/loadOnlyAndPntFasta.py', '--only1', fn_only1, '--only2', fn_only2, '--reads1', fn_reads1, '--reads2', fn_reads2, '--outfile_reads1', fn_out_reads1, '--outfile_reads2', fn_out_reads2] # , ' > ' + fn_out]
 
 	runTheCommand(command, 'Getting the fasta sequences of the filtered (1) flanks.')
 	# subprocess.run(command, shell=True) 
 
 
-def rmFlanks_whenOneDirFullAlign_v2(blastRes_1, blastRes_2, flanks_1, flanks_2, fn_out_flanks1Filtered, fn_out_flanks2Filtered, fn_out, dir_out_waisTmp, thresholds):
-	command1 = ["python3", "wais/scripts/rmFlanks_whenOneDirFullAlign_v2.py", "--blastRes_1", blastRes_1, "--blastRes_2", blastRes_2, "--flanks_1", flanks_1, "--flanks_2", flanks_2, "--out_flanks_1", fn_out_flanks1Filtered, "--out_flanks_2", fn_out_flanks2Filtered] #, " > " + fn_out]
+def rmFlanks_whenOneDirFullAlign_v2(path_to_script, blastRes_1, blastRes_2, flanks_1, flanks_2, fn_out_flanks1Filtered, fn_out_flanks2Filtered, fn_out, dir_out_waisTmp, thresholds):
+	command1 = ["python3", path_to_script + "/scripts/rmFlanks_whenOneDirFullAlign_v2.py", "--blastRes_1", blastRes_1, "--blastRes_2", blastRes_2, "--flanks_1", flanks_1, "--flanks_2", flanks_2, "--out_flanks_1", fn_out_flanks1Filtered, "--out_flanks_2", fn_out_flanks2Filtered] #, " > " + fn_out]
 
 	command1 = command1 + thresholds.getThresholds_asList('rmFlanks_whenOneDirFullAlign_v2')
 
@@ -457,8 +457,8 @@ def rmFlanks_whenOneDirFullAlign_v2(blastRes_1, blastRes_2, flanks_1, flanks_2, 
 	# subprocess.run(command2, shell=True)
 
 
-def getFlankingSeqs(reads_to_IS_blastRes, reads, fn_out, thresholds):
-	command = ['python3', 'wais/scripts/getFlankingSeqs.py', '--reads_to_IS', reads_to_IS_blastRes, '--reads', reads] #  + ' > ' + fn_out]
+def getFlankingSeqs(path_to_script, reads_to_IS_blastRes, reads, fn_out, thresholds):
+	command = ['python3', path_to_script + '/scripts/getFlankingSeqs.py', '--reads_to_IS', reads_to_IS_blastRes, '--reads', reads] #  + ' > ' + fn_out]
 	
 	command = command + thresholds.getThresholds_asList('getFlankingSeqs')
 	
@@ -609,11 +609,12 @@ def returnSlashIfMissing(dirName):
 def main(): 
 
 
+
 	
 	parser = argparse.ArgumentParser(description='Determine where the insertion sequences (IS) are in a reference genome, or an assembly (generated using short-reads) - using short-read sequences.')
 
 	parser.add_argument('--outputDir', required=True, nargs=1)
-	parser.add_argument('--runSpades', action='store_true', help='')
+	parser.add_argument('--runSpades', action='store_true', help='Assemble genome as part of WaIS using SPAdes.')
 	parser.add_argument('--spadesOptions', nargs=1, default=[''], help="Options to send to spades.")
 	parser.add_argument('--assembly', nargs=1, help='')
 	parser.add_argument('--ISseqs', required=True, nargs=1, help='Fasta file containing the IS sequences to find.') 
@@ -710,7 +711,12 @@ def main():
 
 	## Checking input thresholds
 
-	runWaIS(args.outputDir[0], args.runSpades, args.assembly, args.reads_1[0], args.reads_2[0], args.ISseqs[0], args.reference[0], args.referenceAnnotations[0], thresholds, args.keepTmp)
+	path_to_script = re.split(r'\/', os.path.realpath(__file__))
+	path_to_script = '/'.join(path_to_script[:-1])
+	print(path_to_script)
+
+
+	runWaIS(args.outputDir[0], args.runSpades, args.assembly, args.reads_1[0], args.reads_2[0], args.ISseqs[0], args.reference[0], args.referenceAnnotations[0], thresholds, args.keepTmp, path_to_script)
 
 
 
