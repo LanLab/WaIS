@@ -15,17 +15,25 @@ def insertionsWrtRefAnnotations(fn_reference, fn_refAnnotation, fn_ISannotation,
 
 	(dict_refFeatures, dict_refSeq) = load_refAnnot(fn_reference, fn_refAnnotation, allowedFeatTypes) 
 
-
-	#for recordId in dict_refFeatures: 
-	#	for (start, end, orient) in dict_refFeatures[recordId]: 
-	#		print (recordId + ' ' + str(start) + ' ' + str(end) + ' ' + orient)
-
+	"""
+	for recordId in dict_refFeatures: 
+		for (start, end, orient) in dict_refFeatures[recordId]: 
+			print (recordId + ' ' + str(start) + ' ' + str(end) + ' ' + orient)
+	"""
+	
 	dict_ISannots = load_ISannot(fn_ISannotation, dict_refSeq)
 	
+	"""
 	# print (dict_ISannots.keys())
+	for recordId in dict_ISannots: 
+		for (start, end, orient) in dict_ISannots[recordId]: 
+			print (recordId + ' ' + str(start) + ':' + str(end) + ':' + orient + ' ' + str(dict_ISannots[recordId][(start, end, orient)]))
+	"""
+	
 	
 	dict_refAnnots_interrupted = getInterruptedAnnots(dict_refFeatures, dict_ISannots) # Annotations directly disrupted by IS (i.e. not the surrounding region).
 
+	
 	"""
 	for refId in dict_refAnnots_interrupted: 
 		for refInfo in dict_refAnnots_interrupted[refId]: 
@@ -33,6 +41,7 @@ def insertionsWrtRefAnnotations(fn_reference, fn_refAnnotation, fn_ISannotation,
 			print (refId + '\t' + str(refInfo) + '\t' + str(dict_refAnnots_interrupted[refId][refInfo]))
 	"""
 	
+	 
 	if th_surroundDist > 0: 
 		# Calc effective distance to check
 		dict_distToCheckForInsert = calcEffectiveDistToCheck(dict_refFeatures, th_surroundDist)
@@ -54,7 +63,7 @@ def insertionsWrtRefAnnotations(fn_reference, fn_refAnnotation, fn_ISannotation,
 
 	else: 
 		printFinalOutput(dict_refFeatures, dict_ISannots, dict_refAnnots_interrupted, th_surroundDist, None, None, fn_outfile_all)
-
+ 
 		if fn_outfile_onlyInterruped: 
 			printFinalOutput_onlyInterrupted(fn_outfile_all, False, fn_outfile_onlyInterruped)
 	
@@ -219,7 +228,7 @@ def printFinalOutput(dict_refFeatures, dict_ISannots, dict_refAnnots_interrupted
 
 				# Interrupted by
 
-				ISinsertPrintStr = getISinsertStrToPrint(dict_ISannots, dict_refAnnots_interrupted[refId][(refStart, refEnd, refOrient)], refStart, refEnd, refOrient, True, False, None, None)
+				ISinsertPrintStr = getISinsertStrToPrint(dict_ISannots, dict_refAnnots_interrupted[refId][(refStart, refEnd, refOrient)], refStart, refEnd, refOrient, True, False, None, None, refId)
 				fh_out.write(ISinsertPrintStr) 
 				
 				"""
@@ -261,7 +270,7 @@ def printFinalOutput(dict_refFeatures, dict_ISannots, dict_refAnnots_interrupted
 
 					if 'left' in dict_insertsInDist[refId][(refStart, refEnd, refOrient)] and len(dict_insertsInDist[refId][(refStart, refEnd, refOrient)]['left']) > 0: 
 						fh_out.write('True\t')
-						ISinsertPrintStr = getISinsertStrToPrint(dict_ISannots, dict_insertsInDist[refId][(refStart, refEnd, refOrient)]['left'], refStart, refEnd, refOrient, False, True, True, False)
+						ISinsertPrintStr = getISinsertStrToPrint(dict_ISannots, dict_insertsInDist[refId][(refStart, refEnd, refOrient)]['left'], refStart, refEnd, refOrient, False, True, True, False, refId)
 						fh_out.write(ISinsertPrintStr) 
 						fh_out.write('\t')
 
@@ -270,7 +279,7 @@ def printFinalOutput(dict_refFeatures, dict_ISannots, dict_refAnnots_interrupted
 
 					if 'right' in dict_insertsInDist[refId][(refStart, refEnd, refOrient)] and len(dict_insertsInDist[refId][(refStart, refEnd, refOrient)]['right']) > 0:
 						fh_out.write('True\t')
-						ISinsertPrintStr = getISinsertStrToPrint(dict_ISannots, dict_insertsInDist[refId][(refStart, refEnd, refOrient)]['right'], refStart, refEnd, refOrient, False, True, False, True)
+						ISinsertPrintStr = getISinsertStrToPrint(dict_ISannots, dict_insertsInDist[refId][(refStart, refEnd, refOrient)]['right'], refStart, refEnd, refOrient, False, True, False, True, refId)
 						fh_out.write(ISinsertPrintStr) 
 						fh_out.write('\t')
 					else: 
@@ -278,12 +287,13 @@ def printFinalOutput(dict_refFeatures, dict_ISannots, dict_refAnnots_interrupted
 			
 			fh_out.write('\n')
 
-def getIStypes(dict_ISannots, ISstart, ISend, ISorient): 
+def getIStypes(dict_ISannots, refId, ISstart, ISend, ISorient): 
 	
 	list_ISids = [] # [ISid1, ISid2, ...]
 	list_isNew = [] # [T, F, T, ...]
 
-	for refId in dict_ISannots: 
+	
+	if refId in dict_ISannots: 
 		for feature in dict_ISannots[refId][(ISstart, ISend, ISorient)]: 
 			for key in feature.qualifiers: 
 				# print (feature.qualifiers[key])
@@ -338,11 +348,11 @@ def print_refAnnotDetails(list_features, fh_out):
 		# print (feature)
 		# print("END")
 
-def getISinsertStrToPrint(dict_ISannots, list_ISloc, refStart, refEnd, refOrient, isDirInsert, isDist, isLeft, isRight): 
+def getISinsertStrToPrint(dict_ISannots, list_ISloc, refStart, refEnd, refOrient, isDirInsert, isDist, isLeft, isRight, refId): 
 	printStr = '' 
 
 	for (ISstart, ISend, ISorient) in list_ISloc: 
-		(list_IStypes, list_isNew) = getIStypes(dict_ISannots, ISstart, ISend, ISorient) 
+		(list_IStypes, list_isNew) = getIStypes(dict_ISannots, refId, ISstart, ISend, ISorient) 
 		for idx_IStype, IStype in enumerate(list_IStypes): 
 			
 			printStr = printStr + str(ISstart) + ':' + str(ISend) + ':' + IStype + ':' + ISorient
@@ -581,7 +591,7 @@ def load_ISannot(fn_ISannotation, dict_refSeq):
 				loc_start = int(feature.location.start) + 1
 				loc_end = int(feature.location.end) 
 
-				print (str(loc_start)  + ':' + str(loc_end))
+				# print (str(loc_start)  + ':' + str(loc_end))
 				# print ('Strand: ' + str(feature.location.strand))
 				if feature.location.strand == 1:
 					strand = '+' 

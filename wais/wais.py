@@ -713,7 +713,7 @@ def main():
 
 	path_to_script = re.split(r'\/', os.path.realpath(__file__))
 	path_to_script = '/'.join(path_to_script[:-1])
-	print(path_to_script)
+	# print(path_to_script)
 
 
 	runWaIS(args.outputDir[0], args.runSpades, args.assembly, args.reads_1[0], args.reads_2[0], args.ISseqs[0], args.reference[0], args.referenceAnnotations[0], thresholds, args.keepTmp, path_to_script)
