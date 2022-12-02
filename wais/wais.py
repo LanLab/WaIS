@@ -444,14 +444,14 @@ def loadOnlyAndPntFasta(path_to_script, fn_only1, fn_only2, fn_reads1, fn_reads2
 
 
 def rmFlanks_whenOneDirFullAlign_v2(path_to_script, blastRes_1, blastRes_2, flanks_1, flanks_2, fn_out_flanks1Filtered, fn_out_flanks2Filtered, fn_out, dir_out_waisTmp, thresholds):
-	command1 = ["python3", path_to_script + "/scripts/rmFlanks_whenOneDirFullAlign_v2.py", "--blastRes_1", blastRes_1, "--blastRes_2", blastRes_2, "--flanks_1", flanks_1, "--flanks_2", flanks_2, "--out_flanks_1", fn_out_flanks1Filtered, "--out_flanks_2", fn_out_flanks2Filtered] #, " > " + fn_out]
+	command1 = ["python3", path_to_script + "/scripts/rmFlanks_whenOneDirFullAlign_v2.py", "--blastRes_1", blastRes_1, "--blastRes_2", blastRes_2, "--flanks_1", flanks_1, "--flanks_2", flanks_2, "--out_flanks_1", fn_out_flanks1Filtered, "--out_flanks_2", fn_out_flanks2Filtered, "--tmpdir",dir_out_waisTmp] #, " > " + fn_out]
 
 	command1 = command1 + thresholds.getThresholds_asList('rmFlanks_whenOneDirFullAlign_v2')
 
-	command2 = ["mv", "only1.txt", "only2.txt", "both.txt", dir_out_waisTmp]
+	# command2 = ["mv", "only1.txt", "only2.txt", "both.txt", dir_out_waisTmp]
 
 	runTheCommand(command1, 'Filtering flanks part 1 (removing flanks, when pair is complete IS')
-	runTheCommand(command2, 'Moving extracted flanks to tmp dir')
+	# runTheCommand(command2, 'Moving extracted flanks to tmp dir')
 
 	# subprocess.run(command1, shell=True)
 	# subprocess.run(command2, shell=True)
@@ -522,6 +522,8 @@ def runTheCommand_redirectOutputToFile(command, printStr, fn_out):
 	# subprocess.check_call(command)
 	cmd = subprocess.Popen(command, stdout=fh_out, stderr=subprocess.STDOUT)
 	cmdOut, cmdErr = cmd.communicate()
+
+	fh_out.close()
 
 	if cmdOut: 
 		cmdOut = cmdOut.decode("utf-8").replace('\\n', '\n')
