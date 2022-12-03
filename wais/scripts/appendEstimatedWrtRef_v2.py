@@ -355,7 +355,16 @@ def breakFalseCountsByIS(dict_counts_isNew):
 	
 		if 'False' in dict_counts_isNew[refId]:  
 			for refIS in dict_counts_isNew[refId]['False']: 
-				(start, end, ISid, orient) = refIS.split(':')
+				arr = refIS.split(':')
+
+				ISid = None
+
+				if len(arr) == 4: 
+					ISid = arr[2]
+				else: 
+					# print (arr_anInsInfo[2:len(arr_anInsInfo)-1]) 
+					ISid = ":".join(sorted(arr[2:len(arr)-1]))
+				# (start, end, ISid, orient) = refIS.split(':')
 
 				if ISid not in dict_isNewIsFalse[refId]: 
 					dict_isNewIsFalse[refId][ISid] = 0 
@@ -407,7 +416,21 @@ def addToEncounteredIS(list_inRef_ISids, isNew, refIS, ISid):
 	if isNew == 'False': 
 		arr_refIS = refIS.split(',')
 		for val in arr_refIS: 
-			(start, end, ISid, orient) = val.split(':')
+			arr_anInsInfo = val.split(':')
+			# start = arr_anInsInfo[0]
+			# end = arr_anInsInfo[1]
+			# orient = arr_anInsInfo[len(arr_anInsInfo)-1]
+
+			if len(arr_anInsInfo) > 4:
+				print (arr_anInsInfo)
+				print (arr_anInsInfo[2:len(arr_anInsInfo)-1]) 
+
+				
+				ISid = ":".join(sorted(arr_anInsInfo[2:len(arr_anInsInfo)-1]))
+			
+			else: 
+				ISid = arr_anInsInfo[2]
+	
 
 			if ISid not in list_inRef_ISids: 
 				list_inRef_ISids.append(ISid)

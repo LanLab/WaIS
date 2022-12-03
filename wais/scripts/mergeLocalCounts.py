@@ -374,7 +374,7 @@ def reduceSet_4(dict_reducedSet1, th_forMergingOverlaps, separator):
 						newEnd = end_set2 if end_set2 >= end_set1 else end_set1
 
 
-						orient = separator.join(list((set(orient_set1.split(separator) + orient_set2.split(separator)))))
+						orient = separator.join(list(set(orient_set1.split(separator) + orient_set2.split(separator))))
 
 
 						""" 
@@ -393,7 +393,7 @@ def reduceSet_4(dict_reducedSet1, th_forMergingOverlaps, separator):
 							# ISid = ISid_set2 + separator + ISid_set1
 						"""
 
-						ISid = separator.join(list((set(ISid_set1.split(separator) + ISid_set2.split(separator)))))	
+						ISid = separator.join(sorted(list((set(ISid_set1.split(separator) + ISid_set2.split(separator))))))	
 
 						dict_reducedSet2[key][SITES][idx] = (newStart, newEnd, ISid, orient)
 						addSupportingInfo_reduced(dict_reducedSet2[key][INFO], dict_reducedSet1[key][INFO], newStart, newEnd, start_set1, end_set1, start_set2, end_set2, ISid, orient, ISid_set1, orient_set1, ISid_set2, orient_set2)

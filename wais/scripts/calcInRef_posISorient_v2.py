@@ -40,15 +40,17 @@ SIDE_S = 'Side_s'
 def calcPosToRef(fn_contigToRef, fn_IStoContig, th_alignDiff_IStoContig, fn_gff_ISannot, fn_directIStoRef, fn_out, isMerged, th_distForMerge, isIgnoreOrient, isIgnoreIStype, separator, th_directOverlap, th_maxAlignLenDiff, th_contigToRef_ISonlyLenDiff):
 
 	# 1. Load direct IStoRef
-	dict_direct = load_direct_IStoRef(fn_directIStoRef)
+	dict_direct = load_direct_IStoRef(fn_directIStoRef, isMerged, isIgnoreOrient, isIgnoreIStype, separator)
 	
-	"""
+	
+	# """
 	for (refId, refLen) in dict_direct: 
 		for (ISid, refStart, refEnd, orient, isContigFlipped) in dict_direct[(refId, refLen)]: 
-			print (refId + ' ' + str(refLen) + ' ' + ISid + ' ' + str(refStart) + ' ' + str(refEnd) + ' ' + orient + ' '  + str(isContigFlipped))
-	"""
+			print (refId + '\t' + str(refLen) + '\t' + ISid + '\t' + str(refStart) + '\t' + str(refEnd) + '\t' + orient + '\t'  + str(isContigFlipped))
+	# """
 
-	
+	# return 
+
 	# 2. contigs which are completely IS 
 	list_contigsWithComplIS = identifyISonlyContigs(fn_IStoContig, th_alignDiff_IStoContig)
 
@@ -60,7 +62,7 @@ def calcPosToRef(fn_contigToRef, fn_IStoContig, th_alignDiff_IStoContig, fn_gff_
 	# 3. load contigToRef 
 	(dict_contigToRef, list_allContigs, dict_contigToRef_alignLen) = load_contigToRef(fn_contigToRef, list_contigsWithComplIS, dict_direct, th_maxAlignLenDiff, dict_IStoContig, th_contigToRef_ISonlyLenDiff) 
 
- 
+	 
 	# 5. Print calc and print IS position from contig to ref
 	list_ISinRef_calc = determineISforRef(dict_contigToRef, dict_IStoContig)
 
@@ -157,6 +159,52 @@ def calcPosToRef(fn_contigToRef, fn_IStoContig, th_alignDiff_IStoContig, fn_gff_
 
 
 #################################### AUX
+def checkIfMerge_directRefIS(list_refInsertions, isMerged, isIgnoreOrient, isIgnoreIStype, separator, ISid_1, refStart_1, refEnd_1, orient_1, isContigFlipped_1):
+
+	isUpdated = False
+	for idx, (ISid_2, refStart_2, refEnd_2, orient_2, isContigFlipped_2) in enumerate(list_refInsertions):
+
+		if isIgnoreIStype == 'True' and isAnyOverlap(refStart_1, refEnd_1, refStart_2, refEnd_2, 0): 
+			# get the positions, merge the ISids and orient
+			(s_new, e_new) = getNewPosForMerge_directRefIS(refStart_1, refEnd_1, refStart_2, refEnd_2)
+			orient_new = orient_1 if orient_1 == orient_2 else '.'
+			ISid_new = getNewISid_directRefIS(ISid_1, ISid_2, separator)
+			list_refInsertions[idx] = (ISid_new, s_new, e_new, orient_new, isContigFlipped_1) 
+
+			isUpdated = True 
+			break 
+
+		elif isIgnoreOrient == 'True' and ISid_1 == ISid_2 and isAnyOverlap(refStart_1, refEnd_1, refStart_2, refEnd_2, 0): 
+
+			# Merge the orient and the positions 
+			(s_new, e_new) = getNewPosForMerge_directRefIS(refStart_1, refEnd_1, refStart_2, refEnd_2)
+			
+			orient_new = orient_1 if orient_1 == orient_2 else '.'
+			list_refInsertions[idx] = (ISid_2, s_new, e_new, orient_new, isContigFlipped_1) 
+
+			isUpdated = True 
+			break 
+
+		elif isMerged == 'True' and ISid_1 == ISid_2 and orient_1 == orient_2 and isAnyOverlap(refStart_1, refEnd_1, refStart_2, refEnd_2, 0): 
+		# Merge the positions
+
+			# print ('Do the merge!!!')
+			(s_new, e_new) = getNewPosForMerge_directRefIS(refStart_1, refEnd_1, refStart_2, refEnd_2)
+			list_refInsertions[idx] = (ISid_2, s_new, e_new, orient_1, isContigFlipped_1) 
+
+			isUpdated = True 
+			break 
+
+	return isUpdated
+
+def getNewPosForMerge_directRefIS(s1, e1, s2, e2):
+
+	s_new = s1 if s1 <= s2 else s2
+	e_new = e1 if e1 >= e2 else e2 
+
+	return (s_new, e_new)   
+
+
 def isISonlyAlignedRegion(contigId, contigStart, contigEnd, dict_IStoContig, th_contigToRef_ISonlyLenDiff): 
 
 	Gff3_start = 3
@@ -541,7 +589,7 @@ def reduceSet_4(dict_reducedSet1, th_forMergingOverlaps, separator):
 						
 						orient = separator.join(list((set(orient_set1.split(separator) + orient_set2.split(separator)))))
 
-						ISid = separator.join(list((set(ISid_set1.split(separator) + ISid_set2.split(separator)))))	
+						ISid = separator.join(sorted(list((set(ISid_set1.split(separator) + ISid_set2.split(separator))))))	
 
 
 						dict_reducedSet2[key][SITES][idx] = (newStart, newEnd, ISid, orient)
@@ -966,12 +1014,30 @@ def load_ISinContig_gff(fn_gff_ISannot):
 
 	return (dict_IStoContig, dict_colors)
 
-def load_direct_IStoRef(fn_directIStoRef):
+def load_direct_IStoRef(fn_directIStoRef, isMerged, isIgnoreOrient, isIgnoreIStype, separator):
 
 	dict_direct = calcInContig.loadDirectIStoContig(fn_directIStoRef, [], 0, 0)
 
-	# dict_direct = {} 
-	return dict_direct 
+	dict_directMerged = dict() # dict_{(refId, refLen)} => [(ISid, alignPosInRef_start, alignPosInRef_end, orientIStoContig, isContigFlipped)]
+
+	for (refId, refLen) in dict_direct: 
+
+		if (refId, refLen) not in dict_directMerged: 
+			dict_directMerged[(refId, refLen)] = [] 
+
+		for (ISid_1, refStart_1, refEnd_1, orient_1, isContigFlipped_1) in dict_direct[(refId, refLen)]: 
+
+			if len(dict_directMerged[(refId, refLen)]) == 0: 
+				dict_directMerged[(refId, refLen)].append((ISid_1, refStart_1, refEnd_1, orient_1, isContigFlipped_1))
+
+			else: 
+				# Either merge or add new! 
+				isUpdated = checkIfMerge_directRefIS(dict_directMerged[(refId, refLen)], isMerged, isIgnoreOrient, isIgnoreIStype, separator, ISid_1, refStart_1, refEnd_1, orient_1, isContigFlipped_1)
+
+				if isUpdated == False: 
+					dict_directMerged[(refId, refLen)].append((ISid_1, refStart_1, refEnd_1, orient_1, isContigFlipped_1))
+				
+	return dict_directMerged 
 
 def identifyISonlyContigs(fn_IStoContig, th_alignDiff_IStoContig):
 	# Identify contigs which are completely IS (for exclusion from further analysis)
@@ -995,6 +1061,23 @@ def identifyISonlyContigs(fn_IStoContig, th_alignDiff_IStoContig):
 	print ('List with complete IS')
 	print (list_contigsWithComplIS) 
 	return (list_contigsWithComplIS)
+
+def getNewISid_directRefIS(ISid_orig, ISid_merged, separator):
+
+	ISid_new = '' 
+
+	arr = ISid_merged.split(separator)
+	
+	if ISid_orig in arr: 
+		ISid_new = ISid_merged 
+
+	else: 
+		arr.append(ISid_orig)
+		ISid_new = separator.join(sorted(arr))
+		# ISid_new = ISid_merged + separator + ISid_orig
+
+	return ISid_new
+	
 
 def getISnotMappedToRef(list_allContigs, dict_contigToRef_alignLen, dict_IStoContig, list_contigsWithComplIS):
 
@@ -1253,7 +1336,7 @@ def main():
 	## parser.add_argument('--fn_out_notInRef', nargs=1, required=True, help='IS annotations not in reference in gff3 format.')
 
 	parser.add_argument('--isMerged', nargs=1, required=False, help='Only print the mapped IS from contigs (from the merged set). Default is False.', default=['False'])
-	parser.add_argument('--merge_th', nargs=1, required=False, help='Threshold (i.e. sequence length in base pairs) to merge overlapping IS. Value only used in conjection with --isMerged. Default=20.', default=[20])
+	parser.add_argument('--th_merge', nargs=1, required=False, help='Threshold (i.e. sequence length in base pairs) to merge overlapping IS. Value only used in conjection with --isMerged. Default=20.', default=[20])
 	parser.add_argument('--ignoreOrient', nargs=1, required=False, help='Values as True or False - to igore or-else check orientation, repsectively. Ignored orientation is appended as orient1:orient2. Default=False.', default=["False"])
 	parser.add_argument('--ignoreIStype', nargs=1, required=False, help='Values as True or False - to igore or-else check IStype, repsectively. Ignored IStypes are appended as IStype1:IStype2:..:IStypeN. This automatically sets isIgnoreOrient to "True". Default=False.', default=["False"])
 	parser.add_argument('--separator', required=False, default=[':'], help='Separate unresolvable IS and orientations. Default=":". Choose a separator that is not an alphabet in the IS identifier.')
@@ -1262,10 +1345,10 @@ def main():
 
 	parser.add_argument('--th_contigToRef_ISonlyLenDiff', required=False, default=[50], help='Alignment length difference between contigToRef and IStoContig - to remove alignments of just the IS in contigs aligning to the reference contigs.')
 
-	parser.add_argument('--overlap_th', nargs=1, required=False, help='Threshold to check if identified IS overlaps with those found in the directIS. Default=20.', default=[20])
+	parser.add_argument('--th_directIS_overlap', nargs=1, required=False, help='Threshold to check if identified IS overlaps with those found in the directIS. Default=20.', default=[20])
 	args = parser.parse_args()
 
-	calcPosToRef(args.contigToRef[0], args.IStoContig[0], args.th_alignDiff_IStoContig[0], args.IS_annotation[0], args.directIStoRef[0], args.fn_out[0], args.isMerged[0], int(args.merge_th[0]), args.ignoreOrient[0], args.ignoreIStype[0], args.separator[0], int(args.overlap_th[0]), int(args.th_maxContigToRef_AlignLenDiff[0]), int(args.th_contigToRef_ISonlyLenDiff[0]))
+	calcPosToRef(args.contigToRef[0], args.IStoContig[0], args.th_alignDiff_IStoContig[0], args.IS_annotation[0], args.directIStoRef[0], args.fn_out[0], args.isMerged[0], int(args.th_merge[0]), args.ignoreOrient[0], args.ignoreIStype[0], args.separator[0], int(args.th_directIS_overlap[0]), int(args.th_maxContigToRef_AlignLenDiff[0]), int(args.th_contigToRef_ISonlyLenDiff[0]))
 
 if __name__ == '__main__':
 	main()

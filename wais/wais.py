@@ -20,46 +20,55 @@ class Thresholds:
 		'rmFlanks_whenOneDirFullAlign_v2': {'--minChoppedLen': None, '--buffer': None}, 
 		'summarizeOnlyToContig': {'--th_minPident': None, '--th_alignAndLenDiff': None},
 		'calcInContig_posISOrient': {'--th_minPident': None, '--th_minPalignLen': None, '--th_minAlignLen': None, '--th_minPident_direct': None, '--th_minAlignLen_direct': None, '--kmeans_clus_start': None, '--kmeans_clus_end': None, '--th_minFlankDepth': None},
-		'mergeLocalCounts': {'--th_forMergingOverlaps': None, '--th_toCountAsEdge': None}, 
-		'calcInRef_posISorient_v2': {'--th_alignDiff_IStoContig': None, '--merge_th': None}, 
+		'mergeLocalCounts': {'--th_forMergingOverlaps': None, '--th_toCountAsEdge': None, '--th_separator': None}, 
+		'calcInRef_posISorient_v2': {'--th_merge': None, '--th_alignDiff_IStoContig': None, '--th_separator': None, '--th_directIS_overlap': None}, 
 		'ISinRefGenome_conglomerate': {'--th_toMergePosFound': None, '--th_finalAlignOverlap': None},
-		'appendEstimatedWrtRef': {'--th_overlap': None}
+		'appendEstimatedWrtRef': {'--th_overlap': None},
+		'insertionsWrtRefAnnotations': {'--th_surroundingDist': None, '--list_annotationTypes': None}
 	}
 
 	def __init__(self, args): 
-		self.dict_th['getFlankingSeqs']['--overlap'] = args.th_getFlankingSeqs_overlap[0]
-		self.dict_th['getFlankingSeqs']['--minChoppedLen'] = args.th_getFlankingSeqs_minChoppedLen[0]
+		self.dict_th['getFlankingSeqs']['--overlap'] = args.th_1_overlap[0]
+		self.dict_th['getFlankingSeqs']['--minChoppedLen'] = args.th_1_minChoppedLen[0]
 		
-		self.dict_th['rmFlanks_whenOneDirFullAlign_v2']['--minChoppedLen'] = args.th__rmFlanks_whenOneDirFullAlign_v2__minChoppedLen[0]
-		self.dict_th['rmFlanks_whenOneDirFullAlign_v2']['--buffer'] = args.th__rmFlanks_whenOneDirFullAlign_v2__buffer[0]
+		self.dict_th['rmFlanks_whenOneDirFullAlign_v2']['--minChoppedLen'] = args.th_2_minChoppedLen[0]
+		self.dict_th['rmFlanks_whenOneDirFullAlign_v2']['--buffer'] = args.th_2_buffer[0]
 		
-		self.dict_th['summarizeOnlyToContig']['--th_minPident'] = args.th_summarizeOnlyToContig_minPident[0]
-		self.dict_th['summarizeOnlyToContig']['--th_alignAndLenDiff'] = args.th_summarizeOnlyToContig_alignAndLenDiff[0]
+		self.dict_th['summarizeOnlyToContig']['--th_minPident'] = args.th_3_minPident[0]
+		self.dict_th['summarizeOnlyToContig']['--th_alignAndLenDiff'] = args.th_3_alignAndLenDiff[0]
 
-		self.dict_th['calcInContig_posISOrient']['--th_minPident'] = args.th__calcInContig_posISOrient__minPident[0]
-		self.dict_th['calcInContig_posISOrient']['--th_minPalignLen'] = args.th__calcInContig_posISOrient__minPalignLen[0]
-		self.dict_th['calcInContig_posISOrient']['--th_minAlignLen'] = args.th__calcInContig_posISOrient__minAlignLen[0]
-		self.dict_th['calcInContig_posISOrient']['--th_minPident_direct'] = args.th__calcInContig_posISOrient__minPident_direct[0]
-		self.dict_th['calcInContig_posISOrient']['--th_minAlignLen_direct'] = args.th__calcInContig_posISOrient__minAlignLen_direct[0]
-		self.dict_th['calcInContig_posISOrient']['--kmeans_clus_start'] = args.th__calcInContig_posISOrient__clus_start[0]
-		self.dict_th['calcInContig_posISOrient']['--kmeans_clus_end'] = args.th__calcInContig_posISOrient__clus_end[0]
-		self.dict_th['calcInContig_posISOrient']['--th_minFlankDepth'] = args.th__calcInContig_posISOrient__minFlankDepth[0]
+		self.dict_th['calcInContig_posISOrient']['--th_minPident'] = args.th_4_minPident[0]
+		self.dict_th['calcInContig_posISOrient']['--th_minPalignLen'] = args.th_4_minPalignLen[0]
+		self.dict_th['calcInContig_posISOrient']['--th_minAlignLen'] = args.th_4_minAlignLen[0]
+		self.dict_th['calcInContig_posISOrient']['--th_minPident_direct'] = args.th_4_minPident_direct[0]
+		self.dict_th['calcInContig_posISOrient']['--th_minAlignLen_direct'] = args.th_4_minAlignLen_direct[0]
+		self.dict_th['calcInContig_posISOrient']['--kmeans_clus_start'] = args.th_4_clus_start[0]
+		self.dict_th['calcInContig_posISOrient']['--kmeans_clus_end'] = args.th_4_clus_end[0]
+		self.dict_th['calcInContig_posISOrient']['--th_minFlankDepth'] = args.th_4_minFlankDepth[0]
 		
-		self.dict_th['mergeLocalCounts']['--th_forMergingOverlaps'] = args.th_mergeLocalCounts_forMergingOverlaps[0]
-		self.dict_th['mergeLocalCounts']['--th_toCountAsEdge'] = args.th_mergeLocalCounts_toCountAsEdge[0]
-		self.dict_th['mergeLocalCounts']['--separator'] = args.th_mergeLocalCounts_separator[0]
+		self.dict_th['mergeLocalCounts']['--th_forMergingOverlaps'] = args.th_5_forMergingOverlaps[0]
+		self.dict_th['mergeLocalCounts']['--th_toCountAsEdge'] = args.th_5_toCountAsEdge[0]
+		self.dict_th['mergeLocalCounts']['--separator'] = args.th_5_separator[0]
 		
-		self.dict_th['calcInRef_posISorient_v2']['--th_alignDiff_IStoContig'] = args.th__calcInRef_posISorient_v2__alignDiff_IStoContig[0]
-		self.dict_th['calcInRef_posISorient_v2']['--merge_th'] = args.th__calcInRef_posISorient_v2__merge[0]
-		self.dict_th['calcInRef_posISorient_v2']['--separator'] = args.th__calcInRef_posISorient_v2__separator[0]
+		self.dict_th['calcInRef_posISorient_v2']['--th_alignDiff_IStoContig'] = args.th_6_alignDiff_IStoContig[0]
+		self.dict_th['calcInRef_posISorient_v2']['--th_merge'] = args.th_6_merge[0]
+		self.dict_th['calcInRef_posISorient_v2']['--separator'] = args.th_6_separator[0]
+		self.dict_th['calcInRef_posISorient_v2']['--th_directIS_overlap'] = args.th_6_directIS_overlap[0]
 
-		self.dict_th['ISinRefGenome_conglomerate']['--th_toMergePosFound'] = args.th__ISinRefGenome_conglomerate__toMergePosFound[0]
-		self.dict_th['ISinRefGenome_conglomerate']['--th_finalAlignOverlap'] = args.th__ISinRefGenome_conglomerate__finalAlignOverlap[0]
+		self.dict_th['ISinRefGenome_conglomerate']['--th_toMergePosFound'] = args.th_7_toMergePosFound[0]
+		self.dict_th['ISinRefGenome_conglomerate']['--th_finalAlignOverlap'] = args.th_7_finalAlignOverlap[0]
+
+		self.dict_th['appendEstimatedWrtRef']['--th_overlap'] = args.th_8_overlapTh[0]
+
+		self.dict_th['insertionsWrtRefAnnotations']['--surrounding_distance'] = args.th_9_surroundingDist[0]
+		self.dict_th['insertionsWrtRefAnnotations']['--annotation_types'] = args.list_9_annotationTypes[0]
+
+
 
 		if self.dict_th['mergeLocalCounts']['--separator'] != self.dict_th['calcInRef_posISorient_v2']['--separator']: 
 			sys.exit('Error: mergeLocalCounts.separator and calcInRef_posISorient_v2.separator should be the same.' )
 
-		self.dict_th['appendEstimatedWrtRef']['--th_overlap'] = args.th__appendEstimatedWrtRef__overlapTh[0]
+		
 
 
 	def getThresholds_asList(self, scriptName):
@@ -285,11 +294,11 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 
 		# 7. If user provides ref annotations: determine if those interrupted or not. 
 		if fn_referenceAnnotations != None: 
-			insertionsWrtRefAnnotations(path_to_script, fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_merged, fn_allInterrupAnnots_merged, fn_onlyInterupAnnots_merged) 
+			insertionsWrtRefAnnotations(path_to_script, fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_merged, fn_allInterrupAnnots_merged, fn_onlyInterupAnnots_merged, fn_out) 
 			
-			insertionsWrtRefAnnotations(path_to_script, fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_ignoreOrient, fn_allInterrupAnnots_ignoreOrient, fn_onlyInterupAnnots_ignoreOrient) 
+			insertionsWrtRefAnnotations(path_to_script, fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_ignoreOrient, fn_allInterrupAnnots_ignoreOrient, fn_onlyInterupAnnots_ignoreOrient, fn_out) 
 		
-			insertionsWrtRefAnnotations(path_to_script, fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_ignoreIStype, fn_allInterrupAnnots_ignoreIStype, fn_onlyInterupAnnots_ignoreIStype) 
+			insertionsWrtRefAnnotations(path_to_script, fn_reference, fn_referenceAnnotations, fn_IStoRef_gff_ignoreIStype, fn_allInterrupAnnots_ignoreIStype, fn_onlyInterupAnnots_ignoreIStype, fn_out) 
 		
 		# insertionsWrtRefAnnotations()
 
@@ -340,13 +349,13 @@ def runProkka(fn_input, dir_output, str_runningOn):
 	return fn_prokka_out[0]
 
 #################################### AUX - Calling WaIS scripts
-def insertionsWrtRefAnnotations(path_to_script, fn_reference, fn_refAnnotations, fn_ISannotations, fn_allAnnots, fn_onlyInterupAnnots):
+def insertionsWrtRefAnnotations(path_to_script, fn_reference, fn_refAnnotations, fn_ISannotations, fn_allAnnots, fn_onlyInterupAnnots, fn_out_rough):
 	command = ["python3", path_to_script + "/scripts/insertionsWrtRefAnnotations.py", "--reference", fn_reference, "--ref_annotation", fn_refAnnotations, '--IS_annotation', fn_ISannotations, '--outfile', fn_allAnnots, '--outfile_onlyInterrupted', fn_onlyInterupAnnots]
 
 	# command = command + thresholds.getThresholds_asList('ISinRefGenome_conglomerate')
 	# command = command + params 
 
-	runTheCommand(command, 'Mapping identified IS positions to reference genome.') 
+	runTheCommand_redirectOutputToFile(command, 'Mapping identified IS positions to reference genome.', fn_out_rough) 
 	
 
 def appendEstimatedWrtRef(path_to_script, fn_ISmappedToRef, fn_ISinContigs, fn_estimates, fn_estimates_singleRow, fn_out): 
@@ -522,6 +531,7 @@ def runTheCommand_redirectOutputToFile(command, printStr, fn_out):
 	# subprocess.check_call(command)
 	cmd = subprocess.Popen(command, stdout=fh_out, stderr=subprocess.STDOUT)
 	cmdOut, cmdErr = cmd.communicate()
+	fh_out.close() 
 
 	if cmdOut: 
 		cmdOut = cmdOut.decode("utf-8").replace('\\n', '\n')
@@ -564,7 +574,7 @@ def handleSpades(isRunSpades, fn_assembly, dir_out_spades, fn_reads1, fn_reads2)
 	fn_spades_assembly = dir_out_spades + 'contigs.fasta' 
 
 	if not os.path.exists(fn_spades_assembly):
-		sys.exit("\nError: Spades did not generated a contigs.fasta file." + '\n\n')
+		sys.exit("\nError: Spades did not generate a contigs.fasta file." + '\n\n')
 	# sys.exit('\nTodo: Run spades and return assembly filename (+ spades arguments)' + '\n\n')
 	return fn_spades_assembly
 
@@ -608,27 +618,28 @@ def returnSlashIfMissing(dirName):
 
 def main(): 
 
+	parser = argparse.ArgumentParser(description='Determine where the insertion sequences (IS) are in a reference genome, or an assembly (generated using short-reads) - using short-read sequences.')
+	group1 = parser.add_mutually_exclusive_group(required=True)
 
+	parser.add_argument('--outputDir', metavar='FOLDER_NAME', required=True, nargs=1)
+	group1.add_argument('--runSpades', action='store_true', help='Assemble genome as part of WaIS using SPAdes.')
+	parser.add_argument('--spadesOptions', nargs='+', help="Additional options to send to spades (e.g. --isolate).")
+
+	group1.add_argument('--assembly', nargs=1, help='A fasta file representing the assembly.')
 
 	
-	parser = argparse.ArgumentParser(description='Determine where the insertion sequences (IS) are in a reference genome, or an assembly (generated using short-reads) - using short-read sequences.')
-
-	parser.add_argument('--outputDir', required=True, nargs=1)
-	parser.add_argument('--runSpades', action='store_true', help='Assemble genome as part of WaIS using SPAdes.')
-	parser.add_argument('--spadesOptions', nargs=1, default=[''], help="Options to send to spades.")
-	parser.add_argument('--assembly', nargs=1, help='')
 	parser.add_argument('--ISseqs', required=True, nargs=1, help='Fasta file containing the IS sequences to find.') 
 	parser.add_argument('--reads_1', required=True, nargs=1, help="Illumina reads forward file.")
 	parser.add_argument('--reads_2', required=True, nargs=1, help="Illumina reads reverse file.")
 	
-	parser.add_argument('--keepTmp', action='store_true', help='Keep the WaisTmp folder. Default=False.')
+	parser.add_argument('--keepTmp', action='store_true', help='Keep the WaIS/Tmp folder. Default=False.')
 	
 	## Reference 
 	parser.add_argument('--reference', nargs=1, help='A reference genome to map the insertion sequences identified in the assembly.', default=[None])
 
 	## Prokka 
 	# parser.add_argument('--prokka', action='store_true', help='Run PROKKA to annotate genome and identify those distrupted by IS.')
-	parser.add_argument('--referenceAnnotations', nargs=1, help='Annotations of genes, or other regions of interest, in the .gbk (genbank) format.', default=[None])
+	parser.add_argument('--referenceAnnotations', nargs=1, help='Annotations of genes, or other regions of interest, in the .gff (genbank feature file) format.', default=[None])
 
 	## Spades options
 	# --path_to_spades 
@@ -636,46 +647,65 @@ def main():
 
 	## WaIS thresholds
 	### getFlankingSeqs.py (Step 7.)
-	parser.add_argument('--th_getFlankingSeqs_overlap', type=int, nargs=1, metavar='INT', help="Number of base pairs of IS alignment to include. Default=0.", default=[0])
-	parser.add_argument('--th_getFlankingSeqs_minChoppedLen', type=int, nargs=1, metavar='INT', help="Minimun chopped sequence length (excluding overlapping sequence) to keep that sequence for further analysis. Default=18.", default=[18])
+	group2 = parser.add_argument_group('1. getFlankingSeqs', 'Optional arguments for getFlankingSeqs.py.')
+	group2.add_argument('--th_1_overlap', type=int, nargs=1, metavar='INT', help="Number of base pairs of IS alignment to include. Default=0.", default=[0])
+	group2.add_argument('--th_1_minChoppedLen', type=int, nargs=1, metavar='INT', help="Minimun chopped sequence length (excluding overlapping sequence) to keep that sequence for further analysis. Default=18.", default=[18])
 
 	### rmFlanks_whenOneDirFullAlign_v2 (Step 8.)
-	parser.add_argument('--th__rmFlanks_whenOneDirFullAlign_v2__minChoppedLen', type=int, nargs=1, metavar='INT', help="Minimun chopped sequence length (excluding overlapping sequence) to keep that sequence for further analysis. Default=18.", default=[18])
-	parser.add_argument('--th__rmFlanks_whenOneDirFullAlign_v2__buffer', type=int, nargs=1, metavar='INT', help="Buffer sequence length of the alignment of SKESA to complete genome to include, to see if the IS lies nearby. Default=0.", default=[0])
+	group3 = parser.add_argument_group('2. rmFlanks_whenOneDirFullAlign_v2', 'Optional arguments for rmFlanks_whenOneDirFullAlign_v2.py.')
+	group3.add_argument('--th_2_minChoppedLen', type=int, nargs=1, metavar='INT', help="Minimun chopped sequence length (excluding overlapping sequence) to keep that sequence for further analysis. Default=18.", default=[18])
+	group3.add_argument('--th_2_buffer', type=int, nargs=1, metavar='INT', help="Buffer sequence length of the alignment of SKESA to complete genome to include, to see if the IS lies nearby. Default=0.", default=[0])
 
 	### summarizeOnlyToContig.py (Step 11.)
-	parser.add_argument('--th_summarizeOnlyToContig_minPident', type=int, nargs=1, metavar='INT', help="Minimum percent identity of alignment to keep (flanks to contig). Default=0.", default=[0])
-	parser.add_argument('--th_summarizeOnlyToContig_alignAndLenDiff', type=int, nargs=1, metavar='INT', help="Alignment and length difference to keep (flanks to contig). Default=10000.", default=[10000])
+	group4 = parser.add_argument_group('3. summarizeOnlyToContig', 'Optional arguments for summarizeOnlyToContig.py.')
+	group4.add_argument('--th_3_minPident', type=int, nargs=1, metavar='INT', help="Minimum percent identity of alignment to keep (flanks to contig). Default=0.", default=[0])
+	group4.add_argument('--th_3_alignAndLenDiff', type=int, nargs=1, metavar='INT', help="Alignment and length difference to keep (flanks to contig). Default=10000.", default=[10000])
 
 	### calcInContig_posISOrient (Step 14.) 
-	parser.add_argument('--th__calcInContig_posISOrient__minPident', type=int, nargs=1, metavar='INT', help='Minimum percent identity of alignment to keep (flanks to contig). Default=0.', default=[0]) 
-	parser.add_argument('--th__calcInContig_posISOrient__minPalignLen', type=int, nargs=1, metavar='INT', help='The minimum percentage length of flank-sequence that aligns with contig. Default=0.', default=[0])
-	parser.add_argument('--th__calcInContig_posISOrient__minAlignLen', type=int, nargs=1, metavar='INT', help='The minimum alignment length. Default=18.', default=[18]) 
-	parser.add_argument('--th__calcInContig_posISOrient__minPident_direct', type=int, nargs=1, metavar='INT', help='Minimum percent identity of alignment to keep (direct IS to contig). Default=95.', default=[95]) 
-	parser.add_argument('--th__calcInContig_posISOrient__minAlignLen_direct', type=int, nargs=1, metavar='INT', help='The minimum alignment length of direct IS to contig. Default=18.', default=[18]) 
-	parser.add_argument('--th__calcInContig_posISOrient__clus_start', type=int, nargs=1, metavar='INT', help='Minimum number of clusters to evaluate in kMeans for each contig. Default=2.', default=[2])
-	parser.add_argument('--th__calcInContig_posISOrient__clus_end', type=int, nargs=1, metavar='INT', help='Maximum number of clusters to evaluate in kMeans for each contig. Default=11.', default=[11]) 
-	parser.add_argument('--th__calcInContig_posISOrient__minFlankDepth', type=int, nargs=1, metavar='INT', help='The minimum number of flanks (/reads) to keep IS position. Default=10.', default=[10]) 
+	group5 = parser.add_argument_group('4. calcInContig_posISOrient', 'Optional arguments for calcInContig_posISOrient.py.')
+	group5.add_argument('--th_4_minPident', type=int, nargs=1, metavar='INT', help='Minimum percent identity of alignment to keep (flanks to contig). Default=0.', default=[0]) 
+	group5.add_argument('--th_4_minPalignLen', type=int, nargs=1, metavar='INT', help='The minimum percentage length of flank-sequence that aligns with contig. Default=0.', default=[0])
+	group5.add_argument('--th_4_minAlignLen', type=int, nargs=1, metavar='INT', help='The minimum alignment length. Default=18.', default=[18]) 
+	group5.add_argument('--th_4_minPident_direct', type=int, nargs=1, metavar='INT', help='Minimum percent identity of alignment to keep (direct IS to contig). Default=95.', default=[95]) 
+	group5.add_argument('--th_4_minAlignLen_direct', type=int, nargs=1, metavar='INT', help='The minimum alignment length of direct IS to contig. Default=18.', default=[18]) 
+	group5.add_argument('--th_4_clus_start', type=int, nargs=1, metavar='INT', help='Minimum number of clusters to evaluate in kMeans for each contig. Default=2.', default=[2])
+	group5.add_argument('--th_4_clus_end', type=int, nargs=1, metavar='INT', help='Maximum number of clusters to evaluate in kMeans for each contig. Default=11.', default=[11]) 
+	group5.add_argument('--th_4_minFlankDepth', type=int, nargs=1, metavar='INT', help='The minimum number of flanks (/reads) to keep IS position. Default=10.', default=[10]) 
 
 	### mergeLocalCounts (Steps 15a, 15b, 15c)
-	parser.add_argument('--th_mergeLocalCounts_toCountAsEdge', type=int, nargs=1, metavar='INT', help='This distance from the (start+th) or (end-th) is checked to determine if insertion is counted as being an edge insertion or an insertion in the middle. Default = 100 (bps).', default=[100]) 
-	parser.add_argument('--th_mergeLocalCounts_forMergingOverlaps', type=int, nargs=1, metavar='INT', help='Distance between two IS, before calling them merges, Default = 20.', default=[20]) 
-	parser.add_argument('--th_mergeLocalCounts_separator', nargs=1, metavar='STRING', help='Separate unresolvable IS and orientations. Default is ":". Choose a separator that is not an alphabet in the IS identifier.', default=[':']) 
+	group6 = parser.add_argument_group('5. mergeLocalCounts', 'Optional arguments for mergeLocalCounts.py.')
+	group6.add_argument('--th_5_toCountAsEdge', type=int, nargs=1, metavar='INT', help='This distance from the (start+th) or (end-th) is checked to determine if insertion is counted as being an edge insertion or an insertion in the middle. Default = 100 (bps).', default=[100]) 
+	group6.add_argument('--th_5_forMergingOverlaps', type=int, nargs=1, metavar='INT', help='Distance between two IS, before calling them merges, Default = 20.', default=[20]) 
+	group6.add_argument('--th_5_separator', nargs=1, metavar='STRING', help='Separate unresolvable IS and orientations. Default is ":". Choose a separator that is not an alphabet in the IS identifier.', default=[':']) 
 
 	### (Reference:) calcInRef_posISorient_v2.py 
-	parser.add_argument('--th__calcInRef_posISorient_v2__merge', type=int, nargs=1, metavar='INT', help='Threshold (i.e. sequence length in base pairs) to merge overlapping IS. Value only used in conjection with --isMerged. Default=20.', default=[20])
-	parser.add_argument('--th__calcInRef_posISorient_v2__alignDiff_IStoContig', type=int, metavar='INT', help="Maximum alignment difference between align-length and contig-length. Default=15.", default=[5])
-	parser.add_argument('--th__calcInRef_posISorient_v2__separator', nargs=1, metavar='STRING', help='Separate unresolvable IS and orientations. Default is ":". Choose a separator that is not an alphabet in the IS identifier.', default=[':']) 
+	group7 = parser.add_argument_group('6. calcInRef_posISorient_v2', 'Optional arguments for calcInRef_posISorient_v2.py.')
+	group7.add_argument('--th_6_merge', type=int, nargs=1, metavar='INT', help='Threshold (i.e. sequence length in base pairs) to merge overlapping IS. Value only used in conjection with --isMerged. Default=20.', default=[20])
+	group7.add_argument('--th_6_alignDiff_IStoContig', type=int, metavar='INT', help="Maximum alignment difference between align-length and contig-length. Default=15.", default=[15])
+	group7.add_argument('--th_6_separator', nargs=1, metavar='STRING', help='Separate unresolvable IS and orientations. Default is ":". Choose a separator that is not an alphabet in the IS identifier.', default=[':']) 
+	group7.add_argument('--th_6_directIS_overlap', type=int, metavar='INT', help="Threshold to check if identified IS overlaps with those found in the directIS. Default=20.", default=[20])
+	
 
 	### (Reference:) ISinRefGenome_conglomerate.py
-	parser.add_argument('--th__ISinRefGenome_conglomerate__toMergePosFound', type=int, nargs=1, metavar='INT', help='To merge IS-positions found within \'th\'. Default=20.', default=[20])
-	parser.add_argument('--th__ISinRefGenome_conglomerate__finalAlignOverlap', type=int, nargs=1, metavar='INT', help='To merge IS-positions found within \'th\'. Default=0.', default=[0])
+	group8 = parser.add_argument_group('7. ISinRefGenome_conglomerate', 'Optional arguments for ISinRefGenome_conglomerate.py.')
+	group8.add_argument('--th_7_toMergePosFound', type=int, nargs=1, metavar='INT', help='To merge IS-positions found within \'th\'. Default=20.', default=[20])
+	group8.add_argument('--th_7_finalAlignOverlap', type=int, nargs=1, metavar='INT', help='To merge IS-positions found within \'th\'. Default=0.', default=[0])
 
-	parser.add_argument('--th__appendEstimatedWrtRef__overlapTh', type=int, nargs=1, metavar='INT', help='Distance in basepairs to describe as single IS insertion. Default=20.', default=[20])
+	group9 = parser.add_argument_group('8. appendEstimatedWrtRef', 'Optional arguments for appendEstimatedWrtRef.py.')
+	group9.add_argument('--th_8_overlap', type=int, nargs=1, metavar='INT', help='Distance in basepairs to describe as single IS insertion. Default=20.', default=[20])
 
-	parser.usage = parser.format_help()
+	group10 = parser.add_argument_group('9. insertionsWrtRefAnnotations', 'Optional arguments for insertionsWrtRefAnnotations.py.')
+	group10.add_argument('--th_9_surroundingDist', type=int, nargs=1, metavar='INT', help='The distance (in base pairs) around which the IS insertions should be reported (such as for insertions in promotor regions). To switch this feature off, set this value to 0. Default=100.', default=[100])
+	group10.add_argument('--list_9_annotationTypes', metavar='[ANNOTATION_TYPE1, ANNOTATION_TYPE2,...]', help='Types of features to calculate IS insertions in. Default=[\'gene\', \'pseudogene\', \'riboswitch\'].', default=['gene', 'pseudogene', 'riboswitch'], nargs='+')
+
+	# parser.usage = parser.format_help()
 	args = parser.parse_args()
 	
+	if args.spadesOptions and not args.runSpades: 
+		sys.exit('Error: If specifying --spadesOptions then please specify --runSpades.')
+	
+	# sys.exit() 
+
 	thresholds = Thresholds(args)
 	# thresholds.printThresholds()
 	# print (thresholds.getThresholds_asList('getFlankingSeqs'))
@@ -715,7 +745,7 @@ def main():
 	path_to_script = '/'.join(path_to_script[:-1])
 	# print(path_to_script)
 
-
+	
 	runWaIS(args.outputDir[0], args.runSpades, args.assembly, args.reads_1[0], args.reads_2[0], args.ISseqs[0], args.reference[0], args.referenceAnnotations[0], thresholds, args.keepTmp, path_to_script)
 
 
