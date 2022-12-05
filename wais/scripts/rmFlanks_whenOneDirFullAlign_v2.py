@@ -25,10 +25,10 @@ def rmTheFlanks(blastRes_1, blastRes_2, minChoppedLen, fn_flanks_1, fn_flanks_2,
 
     # doTheOutput(dict_readsToIS_1, dict_readsToIS_2, minChoppedLen, 'both.txt', 'only1.txt', 'only2.txt')
     (list_readsToKeep_1, list_readsToKeep_2) = doTheOutput(dict_readsToIS_1, dict_readsToIS_2, minChoppedLen, fn_out_both, fn_out_only1, fn_out_only2)
-    
+
     printTheFlanks_(list_readsToKeep_1, fn_flanks_1, fn_out_flanks1)
     printTheFlanks_(list_readsToKeep_2, fn_flanks_2, fn_out_flanks2)
-    
+
     # rewriteTheFlanks();
 
     """
@@ -59,7 +59,7 @@ def printTheFlanks_(list_readsToKeep, fn_flanks, fn_out_flanks):
             # else:
             #    print (arr[0])
 
-    fh_out.close() 
+    fh_out.close()
 
 
 
@@ -94,13 +94,13 @@ def doTheOutput(dict_readsToIS_1, dict_readsToIS_2, minChoppedLen, fn_both, fn_o
                 fh_.write(contigName + "\t")
 
                 for ISname in dict_readsToIS_1[contigName]:
-                    
 
-                    for anInfo in dict_readsToIS_1[contigName][ISname]: 
+
+                    for anInfo in dict_readsToIS_1[contigName][ISname]:
                         # print (anInfo)
                         (alignLen, readLen, choppedLen) = getTheISAndInfo(anInfo)
                         # print (str(alignLen) + "\t" + str(readLen) + "\t" + str(choppedLen))
-                    
+
                         isKeep="Rm"
 
                         if choppedLen >= minChoppedLen:
@@ -117,7 +117,7 @@ def doTheOutput(dict_readsToIS_1, dict_readsToIS_2, minChoppedLen, fn_both, fn_o
 
 
                 for ISname in dict_readsToIS_2[contigName]:
-                    
+
                     for anInfo in dict_readsToIS_2[contigName][ISname]:
                         (alignLen, readLen, choppedLen) = getTheISAndInfo(anInfo)
 
@@ -184,7 +184,7 @@ def doTheOutput(dict_readsToIS_1, dict_readsToIS_2, minChoppedLen, fn_both, fn_o
             if contigName not in dict_readsToIS_2:
                 fh_.write(contigName + '\t')
                 for ISname in dict_readsToIS_1[contigName]:
-                    
+
                     for anInfo in dict_readsToIS_1[contigName][ISname]:
                         (alignLen, readLen, choppedLen) = getTheISAndInfo(anInfo)
 
@@ -284,7 +284,7 @@ def loadTheReadNamesAndLen(fn_flanks, fn_out, list_complAlignedOther):
             #    dict_readLens[record.id] = len(record.seq)
 
     # return (dict_readLens)
-        
+
 
 ################################# MAIN
 def main():
@@ -310,7 +310,7 @@ def main():
     parser.add_argument('--fn_out_both', nargs=1, help="Filename to store both.", default=['both.txt'])
 
 
-    
+
 
     args = parser.parse_args()
 
