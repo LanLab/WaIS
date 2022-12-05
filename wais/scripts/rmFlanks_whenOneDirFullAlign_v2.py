@@ -9,7 +9,7 @@ from Bio import SeqIO
 import getFlankingSeqs as fns_flankingSeqs
 
 ################################# TOP_LVL
-def rmTheFlanks(blastRes_1, blastRes_2, minChoppedLen, fn_flanks_1, fn_flanks_2, fn_out_flanks1, fn_out_flanks2, fn_flanks1AndOnly2, fn_flanks2AndOnly1): #, fn_flanksOut_1, fn_flanksOut_2): # flanks_1, flanks_2, fn_out_1, fn_out_2):
+def rmTheFlanks(blastRes_1, blastRes_2, minChoppedLen, fn_flanks_1, fn_flanks_2, fn_out_flanks1, fn_out_flanks2, fn_flanks1AndOnly2, fn_flanks2AndOnly1, fn_out_only1, fn_out_only2, fn_out_both): #, fn_flanksOut_1, fn_flanksOut_2): # flanks_1, flanks_2, fn_out_1, fn_out_2):
 
     #dict_reads1 = loadTheReadNamesAndLen(fn_reads1)
     #dict_reads2 = loadTheReadNamesAndLen(fn_reads1)
@@ -24,7 +24,7 @@ def rmTheFlanks(blastRes_1, blastRes_2, minChoppedLen, fn_flanks_1, fn_flanks_2,
     dict_readsToIS_2 = fns_flankingSeqs.loadBlastRes(blastRes_2)
 
     # doTheOutput(dict_readsToIS_1, dict_readsToIS_2, minChoppedLen, 'both.txt', 'only1.txt', 'only2.txt')
-    (list_readsToKeep_1, list_readsToKeep_2) = doTheOutput(dict_readsToIS_1, dict_readsToIS_2, minChoppedLen, 'both.txt', 'only1.txt', 'only2.txt')
+    (list_readsToKeep_1, list_readsToKeep_2) = doTheOutput(dict_readsToIS_1, dict_readsToIS_2, minChoppedLen, fn_out_both, fn_out_only1, fn_out_only2)
     
     printTheFlanks_(list_readsToKeep_1, fn_flanks_1, fn_out_flanks1)
     printTheFlanks_(list_readsToKeep_2, fn_flanks_2, fn_out_flanks2)
@@ -305,9 +305,16 @@ def main():
     parser.add_argument('--flanks1AndOnly2', nargs=1, help="Output from summarizeOnlyToContig.py", default=[''])
     parser.add_argument('--flanks2AndOnly1', nargs=1, help="Output from summarizeOnlyToContig.py", default=[''])
 
+    parser.add_argument('--fn_out_only1', nargs=1, help="Filename to store only1 flanks.", default=['only1.txt'])
+    parser.add_argument('--fn_out_only2', nargs=1, help="Filename to store only2 flanks.", default=['only2.txt'])
+    parser.add_argument('--fn_out_both', nargs=1, help="Filename to store both.", default=['both.txt'])
+
+
+    
+
     args = parser.parse_args()
 
-    rmTheFlanks(args.blastRes_1[0], args.blastRes_2[0], args.minChoppedLen[0], args.flanks_1[0], args.flanks_2[0], args.out_flanks_1[0], args.out_flanks_2[0], args.flanks1AndOnly2[0], args.flanks2AndOnly1[0]) # args.flanks_1[0], args.flanks_2[0], args.out_flanks_1[0], args.out_flanks_2[0])
+    rmTheFlanks(args.blastRes_1[0], args.blastRes_2[0], args.minChoppedLen[0], args.flanks_1[0], args.flanks_2[0], args.out_flanks_1[0], args.out_flanks_2[0], args.flanks1AndOnly2[0], args.flanks2AndOnly1[0], args.fn_out_only1[0], args.fn_out_only2[0], args.fn_out_both[0]) # args.flanks_1[0], args.flanks_2[0], args.out_flanks_1[0], args.out_flanks_2[0])
 
 if __name__ == '__main__':
     main()

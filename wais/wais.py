@@ -20,8 +20,8 @@ class Thresholds:
 		'rmFlanks_whenOneDirFullAlign_v2': {'--minChoppedLen': None, '--buffer': None}, 
 		'summarizeOnlyToContig': {'--th_minPident': None, '--th_alignAndLenDiff': None},
 		'calcInContig_posISOrient': {'--th_minPident': None, '--th_minPalignLen': None, '--th_minAlignLen': None, '--th_minPident_direct': None, '--th_minAlignLen_direct': None, '--kmeans_clus_start': None, '--kmeans_clus_end': None, '--th_minFlankDepth': None},
-		'mergeLocalCounts': {'--th_forMergingOverlaps': None, '--th_toCountAsEdge': None, '--th_separator': None}, 
-		'calcInRef_posISorient_v2': {'--th_merge': None, '--th_alignDiff_IStoContig': None, '--th_separator': None, '--th_directIS_overlap': None}, 
+		'mergeLocalCounts': {'--th_forMergingOverlaps': None, '--th_toCountAsEdge': None, '--separator': None}, 
+		'calcInRef_posISorient_v2': {'--th_merge': None, '--th_alignDiff_IStoContig': None, '--separator': None, '--th_directIS_overlap': None}, 
 		'ISinRefGenome_conglomerate': {'--th_toMergePosFound': None, '--th_finalAlignOverlap': None},
 		'appendEstimatedWrtRef': {'--th_overlap': None},
 		'insertionsWrtRefAnnotations': {'--th_surroundingDist': None, '--list_annotationTypes': None}
@@ -58,7 +58,7 @@ class Thresholds:
 		self.dict_th['ISinRefGenome_conglomerate']['--th_toMergePosFound'] = args.th_7_toMergePosFound[0]
 		self.dict_th['ISinRefGenome_conglomerate']['--th_finalAlignOverlap'] = args.th_7_finalAlignOverlap[0]
 
-		self.dict_th['appendEstimatedWrtRef']['--th_overlap'] = args.th_8_overlapTh[0]
+		self.dict_th['appendEstimatedWrtRef']['--th_overlap'] = args.th_8_overlap[0]
 
 		self.dict_th['insertionsWrtRefAnnotations']['--surrounding_distance'] = args.th_9_surroundingDist[0]
 		self.dict_th['insertionsWrtRefAnnotations']['--annotation_types'] = args.list_9_annotationTypes[0]
@@ -330,7 +330,8 @@ def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseRe
 	if not keepTmp: 
 		shutil.rmtree(dir_out_waisTmp)
 
-
+	command2 = ["mv", logFile, dir_out_wais]
+	subprocess.Popen(command2, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	
 #################################### AUX - Prokka 
 def bedtoolsIntersect():
@@ -453,14 +454,14 @@ def loadOnlyAndPntFasta(path_to_script, fn_only1, fn_only2, fn_reads1, fn_reads2
 
 
 def rmFlanks_whenOneDirFullAlign_v2(path_to_script, blastRes_1, blastRes_2, flanks_1, flanks_2, fn_out_flanks1Filtered, fn_out_flanks2Filtered, fn_out, dir_out_waisTmp, thresholds):
-	command1 = ["python3", path_to_script + "/scripts/rmFlanks_whenOneDirFullAlign_v2.py", "--blastRes_1", blastRes_1, "--blastRes_2", blastRes_2, "--flanks_1", flanks_1, "--flanks_2", flanks_2, "--out_flanks_1", fn_out_flanks1Filtered, "--out_flanks_2", fn_out_flanks2Filtered] #, " > " + fn_out]
+	command1 = ["python3", path_to_script + "/scripts/rmFlanks_whenOneDirFullAlign_v2.py", "--blastRes_1", blastRes_1, "--blastRes_2", blastRes_2, "--flanks_1", flanks_1, "--flanks_2", flanks_2, "--out_flanks_1", fn_out_flanks1Filtered, "--out_flanks_2", fn_out_flanks2Filtered, "--fn_out_only1", dir_out_waisTmp + 'only1.txt', "--fn_out_only2", dir_out_waisTmp + 'only2.txt', "--fn_out_both", dir_out_waisTmp + 'both.txt'] #, " > " + fn_out]
 
 	command1 = command1 + thresholds.getThresholds_asList('rmFlanks_whenOneDirFullAlign_v2')
 
-	command2 = ["mv", "only1.txt", "only2.txt", "both.txt", dir_out_waisTmp]
+	# command2 = ["mv", "only1.txt", "only2.txt", "both.txt", dir_out_waisTmp]
 
 	runTheCommand(command1, 'Filtering flanks part 1 (removing flanks, when pair is complete IS')
-	runTheCommand(command2, 'Moving extracted flanks to tmp dir')
+	# runTheCommand(command2, 'Moving extracted flanks to tmp dir')
 
 	# subprocess.run(command1, shell=True)
 	# subprocess.run(command2, shell=True)
