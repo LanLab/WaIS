@@ -657,7 +657,7 @@ def main():
 	### rmFlanks_whenOneDirFullAlign_v2 (Step 8.)
 	group3 = parser.add_argument_group('2. rmFlanks_whenOneDirFullAlign_v2', 'Optional arguments for rmFlanks_whenOneDirFullAlign_v2.py.')
 	group3.add_argument('--th_2_minChoppedLen', type=int, nargs=1, metavar='INT', help="Minimun chopped sequence length (excluding overlapping sequence) to keep that sequence for further analysis. Default=18.", default=[18])
-	group3.add_argument('--th_2_buffer', type=int, nargs=1, metavar='INT', help="Buffer sequence length of the alignment of SKESA to complete genome to include, to see if the IS lies nearby. Default=0.", default=[0])
+	group3.add_argument('--th_2_buffer', type=int, nargs=1, metavar='INT', help="Buffer sequence length of the alignment of assembly to complete genome to include, to see if the IS lies nearby. Default=0.", default=[0])
 
 	### summarizeOnlyToContig.py (Step 11.)
 	group4 = parser.add_argument_group('3. summarizeOnlyToContig', 'Optional arguments for summarizeOnlyToContig.py.')
@@ -666,8 +666,8 @@ def main():
 
 	### calcInContig_posISOrient (Step 14.)
 	group5 = parser.add_argument_group('4. calcInContig_posISOrient', 'Optional arguments for calcInContig_posISOrient.py.')
-	group5.add_argument('--th_4_minPident', type=int, nargs=1, metavar='INT', help='Minimum percent identity of alignment to keep (flanks to contig). Default=0.', default=[0])
-	group5.add_argument('--th_4_minPalignLen', type=int, nargs=1, metavar='INT', help='The minimum percentage length of flank-sequence that aligns with contig. Default=0.', default=[0])
+	group5.add_argument('--th_4_minPident', type=int, nargs=1, metavar='INT', help='Minimum percent identity of alignment to keep (flanks to contig). Default=95.', default=[95])
+	group5.add_argument('--th_4_minPalignLen', type=int, nargs=1, metavar='INT', help='The minimum percentage length of flank-sequence that aligns with contig. Default=90.', default=[90])
 	group5.add_argument('--th_4_minAlignLen', type=int, nargs=1, metavar='INT', help='The minimum alignment length. Default=18.', default=[18])
 	group5.add_argument('--th_4_minPident_direct', type=int, nargs=1, metavar='INT', help='Minimum percent identity of alignment to keep (direct IS to contig). Default=95.', default=[95])
 	group5.add_argument('--th_4_minAlignLen_direct', type=int, nargs=1, metavar='INT', help='The minimum alignment length of direct IS to contig. Default=18.', default=[18])
