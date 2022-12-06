@@ -87,12 +87,12 @@ class Thresholds:
 
 
 #################################### TOP_LVL
-def runWaIS(dir_out, isRunSpades, fnList_assembly, fn_forwardReads, fn_reverseReads, fn_ISseqs, fn_reference, fn_referenceAnnotations, thresholds, keepTmp, path_to_script):
+def runWaIS(dir_out, isRunSpades, args_spades, fnList_assembly, fn_forwardReads, fn_reverseReads, fn_ISseqs, fn_reference, fn_referenceAnnotations, thresholds, keepTmp, path_to_script):
 
 	(dir_out_wais, dir_out_waisTmp, dir_out_waisFinal, dir_out_spades) = createOutputDirStruct(dir_out, isRunSpades)
 
 	## Run spades, or set as provided assembly
-	fn_assembly = handleSpades(isRunSpades, fnList_assembly, dir_out_spades, fn_forwardReads, fn_reverseReads)
+	fn_assembly = handleSpades(isRunSpades, args_spades, fnList_assembly, dir_out_spades, fn_forwardReads, fn_reverseReads)
 	logging.info('Assembly file finalized as ' + fn_assembly)
 
 	## Pipline steps
@@ -556,7 +556,7 @@ def doBlastn_outfmt7(query, db, output):
 	runTheCommand(command, 'BLASTing query ' + query + ' against db ' + db)
 
 #################################### AUX - SPADES
-def handleSpades(isRunSpades, fn_assembly, dir_out_spades, fn_reads1, fn_reads2):
+def handleSpades(isRunSpades, args_spades, fn_assembly, dir_out_spades, fn_reads1, fn_reads2):
 
 	if isRunSpades == False:
 		return fn_assembly[0]
@@ -564,11 +564,19 @@ def handleSpades(isRunSpades, fn_assembly, dir_out_spades, fn_reads1, fn_reads2)
 	# Run spades and return assembly filename
 
 	logging.info('Running spades.py')
-
+	# logging.info(args_spades[0])
 	fh_spades_shell_stdout = open(dir_out_spades + 'shell_stdout', 'w+')
 	fh_spades_shell_stderr = open(dir_out_spades + 'shell_stderr', 'w+')
 
-	subprocess.run('spades.py --tmp-dir /tmp --pe1-1 ' + fn_reads1 + ' --pe1-2 ' + fn_reads2 +  ' -o ' + dir_out_spades, stdout=fh_spades_shell_stdout, shell=True, stderr=fh_spades_shell_stderr)
+	# --tmp-dir /tmp 
+	command = 'spades.py  --pe1-1 ' + fn_reads1 + ' --pe1-2 ' + fn_reads2 +  ' -o ' + dir_out_spades 
+
+	if args_spades: 
+		command = command + ' ' + args_spades[0]
+
+	logging.info(command);
+
+	subprocess.run(command, stdout=fh_spades_shell_stdout, shell=True, stderr=fh_spades_shell_stderr)
 
 	fh_spades_shell_stdout.close()
 	fh_spades_shell_stderr.close()
@@ -626,7 +634,7 @@ def main():
 
 	parser.add_argument('--outputDir', metavar='FOLDER_NAME', required=True, nargs=1)
 	group1.add_argument('--runSpades', action='store_true', help='Assemble genome as part of WaIS using SPAdes.')
-	parser.add_argument('--spadesOptions', nargs='+', help="Additional options to send to spades (e.g. --isolate).")
+	parser.add_argument('--spadesOptions', nargs='+', help="Additional options to send to spades (e.g. \"--isolate\" or \"--tmp-dir /tmp\").")
 
 	group1.add_argument('--assembly', nargs=1, help='A fasta file representing the assembly.')
 
@@ -749,7 +757,7 @@ def main():
 	# print(path_to_script)
 
 
-	runWaIS(args.outputDir[0], args.runSpades, args.assembly, args.reads_1[0], args.reads_2[0], args.ISseqs[0], args.reference[0], args.referenceAnnotations[0], thresholds, args.keepTmp, path_to_script)
+	runWaIS(args.outputDir[0], args.runSpades, args.spadesOptions, args.assembly, args.reads_1[0], args.reads_2[0], args.ISseqs[0], args.reference[0], args.referenceAnnotations[0], thresholds, args.keepTmp, path_to_script)
 
 
 
